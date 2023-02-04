@@ -1,14 +1,11 @@
 # PocketProxy
 
-This is my own edition of *[http://joshdick.github.io/miniProxy]MiniProxy*, renamed to PocketProxy!
+This is my own edition of *[http://joshdick.github.io/miniProxy](http://joshdick.github.io/miniProxy)*, renamed to PocketProxy!
 
----
-
-# PocketProxy
-
-miniProxy made by by Joshua Dick, PocketProxy maintained by me
+Joshua Dick originally made miniProxy and dropped development, I now occasionally update it under the name PocketProxy.
 
 *[http://joshdick.github.io/miniProxy](http://joshdick.github.io/miniProxy)*
+
 *[https://andrewsalmon.github.io/PocketProxy/](https://andrewsalmon.github.io/PocketProxy/)*
 
 ---
@@ -16,12 +13,11 @@ miniProxy made by by Joshua Dick, PocketProxy maintained by me
 ## About PocketProxy
 
 PocketProxy is a simple web proxy written in PHP that can allow you to bypass Internet content filters, or to browse the internet anonymously. 
-PocketProxy is licensed under the [GNU GPL v3](https://www.gnu.org/licenses/gpl-3.0.html). 
 PocketProxy is the successor to [MiniProxy](http://pageforward.sf.net).
 
 ## Prerequisites
 
-PocketProxy should be able to run on any web server with PHP 5.4.7 or later. miniProxy requires PHP's `curl` and `mbstring` extensions to be installed.
+PocketProxy should be able to run on any web server with PHP 5.4.7 or later. PocketProxy requires PHP's `curl`, `mbstring` and `xml` extensions to be installed.
 
 ## Installation and Use
 
@@ -39,5 +35,5 @@ PocketProxy has several known limitations. Some of them may be fixed in future r
 
 ## Contact and Feedback
 
-If you'd like to contribute to PocketProxy or file a bug or feature request, please visit [its GitHub page].
+If you'd like to contribute to PocketProxy or file a bug or feature request, please visit [its GitHub page]
 
