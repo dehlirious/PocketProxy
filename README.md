@@ -2,6 +2,8 @@
 
 This is my own edition of *[http://joshdick.github.io/miniProxy](http://joshdick.github.io/miniProxy)*, renamed to PocketProxy!
 
+Demo it in live at *[https://zrr.us/pocketproxy.php](https://zrr.us/pocketproxy.php)*
+
 Joshua Dick originally made miniProxy and dropped development, I now occasionally update it under the name PocketProxy.
 
 *[http://joshdick.github.io/miniProxy](http://joshdick.github.io/miniProxy)*
