@@ -1,15 +1,8 @@
 <?php
-/*
-NOTE: miniProxy IS NO LONGER MAINTAINED AS OF APRIL 26th, 2020.
-IF YOU USE IT, YOU DO SO ENTIRELY AT YOUR OWN RISK.
-More information is available at <https://github.com/joshdick/miniProxy>.
-*/
 
-/*
-miniProxy - A simple PHP web proxy. <https://github.com/joshdick/miniProxy>
-Written and maintained by Joshua Dick <http://joshdick.net>.
-miniProxy is licensed under the GNU GPL v3 <https://www.gnu.org/licenses/gpl-3.0.html>.
-*/
+include "Captcha/AIO-Captcha.php";
+use Gregwar\Captcha\CaptchaBuilder;
+use Gregwar\Captcha\PhraseBuilder;
 
 /****************************** START CONFIGURATION ******************************/
 
@@ -37,8 +30,28 @@ $blacklistPatterns = [
   //getHostnamePattern("example.net")
 ];
 
+//To make a user enter a captcha for specified website(s)
+$captchasitesz = ["badactorwebsite9512521.org","archive.is","archive.li"]; 
+
+// If you have a HTTPS:// website,  you need to set this to "https" otherwise there will be bugs and content(css/js) won't load properly!
+// If you are on HTTP, this needs to be set to "http"
+$httpvariable = "https"; 
+
+//Change this to false to disable captcha codes from being displayed in plaintext
+$cce = false;
+
+//Added
+function get_domain($url)
+{
+    $domain = parse_url((strpos($url, '://') === FALSE ? 'http://' : '') . trim($url), PHP_URL_HOST);
+    if (preg_match('/[a-z0-9][a-z0-9\-]{0,63}\.[a-z]{2,6}(\.[a-z]{1,2})?$/i', $domain, $match))
+    {
+		return $match[0]; 
+	}
+}
+
 //To enable CORS (cross-origin resource sharing) for proxied sites, set $forceCORS to true.
-$forceCORS = false;
+$forceCORS = true;//I see no reason to have this disabled
 
 //Set to false to allow sites on the local network (where miniProxy is running) to be proxied.
 $disallowLocal = true;
@@ -163,7 +176,8 @@ $prefixPort = $usingDefaultPort ? "" : ":" . $_SERVER["SERVER_PORT"];
 $prefixHost = $_SERVER["HTTP_HOST"];
 $prefixHost = strpos($prefixHost, ":") ? implode(":", explode(":", $_SERVER["HTTP_HOST"], -1)) : $prefixHost;
 
-define("PROXY_PREFIX", "http" . (isset($_SERVER["HTTPS"]) ? "s" : "") . "://" . $prefixHost . $prefixPort . $_SERVER["SCRIPT_NAME"] . "?");
+define("PROXY_PREFIX", $httpvariable. (isset($_SERVER["HTTPS"]) ? "s" : "") . "://".$prefixHost.""//.$prefixPort //was removed because it displayed port 80 and i haven't fixed it yet, will need uncommented if you are on a port other than :80
+. $_SERVER["SCRIPT_NAME"] . "?");
 
 //Makes an HTTP request via cURL, using request data that was passed directly to this script.
 function makeRequest($url) {
@@ -185,9 +199,10 @@ function makeRequest($url) {
   $removedHeaders = removeKeys(
     $browserRequestHeaders,
     [
-      "Accept-Encoding", //Throw away the browser's Accept-Encoding header if any and let cURL make the request using gzip if possible.
+     // "Accept-Encoding", // Removed because it gave me issues! I don't know why yet, i assume a php gzip misconfiguration//Throw away the browser's Accept-Encoding header if any and let cURL make the request using gzip if possible.
       "Content-Length",
       "Host",
+      "X-Frame-Options",//Added but not necessary it seems
       "Origin"
     ]
   );
@@ -208,7 +223,7 @@ function makeRequest($url) {
   //If an `origin` header is present in the request, rewrite it to point to the correct origin.
   if (in_array("origin", $removedHeaders)) {
     $urlParts = parse_url($url);
-    $port = $urlParts["port"];
+    $port = array_key_exists("port",$urlParts) == null ? "":$urlParts["port"]; // Modified to remove a PHP Warning code
     $curlRequestHeaders[] = "Origin: " . $urlParts["scheme"] . "://" . $urlParts["host"] . (empty($port) ? "" : ":" . $port);
   };
   curl_setopt($ch, CURLOPT_HTTPHEADER, $curlRequestHeaders);
@@ -317,15 +332,31 @@ function proxifyCSS($css, $baseURL) {
     },
     $normalizedCSS);
 }
+//Added to prevent empty responses and remove php warning codes
+function nozeros($source){
+    if($source > 0.0){
+            return strrpos($source, " ");
+    } else {
+            return 1;//intval($source);
+    }
+    return strrpos($source, " ");
+}
 
 //Proxify "srcset" attributes (normally associated with <img> tags.)
 function proxifySrcset($srcset, $baseURL) {
   $sources = array_map("trim", explode(",", $srcset)); //Split all contents by comma and trim each value
   $proxifiedSources = array_map(function($source) use ($baseURL) {
-    $components = array_map("trim", str_split($source, strrpos($source, " "))); //Split by last space and trim
+    $components = array_map("trim", str_split($source, nozeros($source))); //Split by last space and trim
     $components[0] = PROXY_PREFIX . rel2abs(ltrim($components[0], "/"), $baseURL); //First component of the split source string should be an image URL; proxify it
-    return implode($components, " "); //Recombine the components into a single source
-  }, $sources);
+    $result = array();
+	foreach ($components as $item) {
+		if (preg_match("/'(.*?)' => '(.*?)'/", $item, $matches)) {
+			$result[ $matches[1] ] = $matches[2];
+		}
+	}
+	
+	return implode(" ", $components); //Recombine the components into a single source //MODIFIED to remove error
+	}, $sources);
   $proxifiedSrcset = implode(", ", $proxifiedSources); //Recombine the sources into a single "srcset"
   return $proxifiedSrcset;
 }
@@ -348,7 +379,10 @@ if (isset($_POST["miniProxyFormAction"])) {
 }
 if (empty($url)) {
     if (empty($startURL)) {
-      die("<html><head><title>miniProxy</title></head><body><h1>Welcome to miniProxy!</h1>miniProxy can be directly invoked like this: <a href=\"" . PROXY_PREFIX . $landingExampleURL . "\">" . PROXY_PREFIX . $landingExampleURL . "</a><br /><br />Or, you can simply enter a URL below:<br /><br /><form onsubmit=\"if (document.getElementById('site').value) { window.location.href='" . PROXY_PREFIX . "' + document.getElementById('site').value; return false; } else { window.location.href='" . PROXY_PREFIX . $landingExampleURL . "'; return false; }\" autocomplete=\"off\"><input id=\"site\" type=\"text\" size=\"50\" /><input type=\"submit\" value=\"Proxy It!\" /></form></body></html>");
+      die("<html><head><title>PocketProxy</title></head><body><h1>Welcome to PocketProxy!</h1>
+PocketProxy can be directly invoked like this: <a href=\"" . PROXY_PREFIX . $landingExampleURL . "\">" . PROXY_PREFIX . $landingExampleURL ."</a><br /><br />Or, you can simply enter a URL below:<br /><br />
+<form onsubmit=\"window.location.href='" . PROXY_PREFIX . "' + document.getElementById('site').value; return false;\">
+<input id='site' type='text' size='50' placeholder='".$landingExampleURL."'><input type=\"submit\" value=\"Proxy It!\" /></form></body></html>");
     } else {
       $url = $startURL;
     }
@@ -358,6 +392,52 @@ if (empty($url)) {
     $pos = strpos($url, ":/");
     $url = substr_replace($url, "://", $pos, strlen(":/"));
 }
+
+//Added for captcha functionality
+$variable1 = array_key_exists("host", parse_url($url)) == null ? "" : get_domain(parse_url($url)["host"]);
+session_start();
+if(in_array($variable1, $captchasitesz)){
+	$variable2 = false; $variable3 = false;
+	if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+        // Checking that the posted phrase match the phrase stored in the session
+        if (isset($_SESSION['phrase']) && PhraseBuilder::comparePhrases($_SESSION['phrase'], $_POST['phrase'])) {
+            $variable2 = true; 
+			//if (!empty($_SESSION['CREATED'])) {//Originally added to remove a php warning code, but ruined functionality
+				if (!isset($_SESSION['CREATED'])) {
+					$_SESSION['CREATED'] = time();
+				}
+			//}
+			/*else if (time() - $_SESSION['CREATED'] > 1800) {
+				// session started more than 30 minutes ago
+				session_regenerate_id(true);    // change session ID for the current session and invalidate old session ID
+				$_SESSION['CREATED'] = time();  // update creation time
+			}*/
+        } else {
+            echo "<h1>Captcha is not valid!</h1>";
+        }
+    }
+		// The phrase can't be used twice
+		unset($_SESSION['phrase']);
+		
+		if (time() - $_SESSION['CREATED'] > 1800) {$variable3 = true;}
+	if(!$variable2 && $variable3){
+		?>
+		<h1>The website you're trying to visit is on the Suspicious Website List!</h1>
+	<form method="post">Please Copy the Captcha (30 minute Sessions)
+        <?php 
+		$phraseBuilder = new PhraseBuilder(4);
+        $captcha = new CaptchaBuilder(null, $phraseBuilder);
+		$captcha->build();
+		$_SESSION['phrase'] = $captcha->getPhrase();?>
+         <img src="<?php echo $captcha->inline(); ?>"/><br/>
+        <?php if($cce){echo "Cheat Code: ". $captcha->getPhrase();} ?>
+        <input type="text" name="phrase" />
+        <input type="submit" />
+    </form>
+		<?php die();
+	}
+}
+
 $scheme = parse_url($url, PHP_URL_SCHEME);
 if (empty($scheme)) {
   if (strpos($url, "//") === 0) {
@@ -415,6 +495,7 @@ if ($forceCORS) {
 
   //Allow access from any origin.
   header("Access-Control-Allow-Origin: *", true);
+  header_remove("X-Frame-Options");//Doesn't seem to be necessary
   header("Access-Control-Allow-Credentials: true", true);
 
   //Handle CORS headers received during OPTIONS requests.
