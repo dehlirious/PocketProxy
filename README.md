@@ -32,6 +32,7 @@ PocketProxy doesn't require any configuration out of the box, but configuration 
 PocketProxy has several known limitations. Some of them may be fixed in future releases. For now, they include:
 
 * `<object>` tags are not handled
+* YouTube does not work (try [youtubeunblocked.live](youtubeunblocked.live))
 * No cookie support
 * Basic AJAX support, but only for browsers that use `XMLHttpRequest`
 
