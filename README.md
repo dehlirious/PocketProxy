@@ -15,7 +15,7 @@ Joshua Dick originally made miniProxy and dropped development, I now occasionall
 ## About PocketProxy
 
 PocketProxy is a simple web proxy written in PHP that can allow you to bypass Internet content filters, or to browse the internet anonymously. 
-PocketProxy is the successor to [MiniProxy](http://pageforward.sf.net).
+PocketProxy is the successor to [https://github.com/joshdick/miniProxy](https://github.com/joshdick/miniProxy).
 
 ## Prerequisites
 
