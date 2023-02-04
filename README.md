@@ -8,7 +8,7 @@ Joshua Dick originally made miniProxy and dropped development, I now occasionall
 
 *[http://joshdick.github.io/miniProxy](http://joshdick.github.io/miniProxy)*
 
-*[https://andrewsalmon.github.io/PocketProxy/](https://dehlirious.github.io/PocketProxy/)*
+*[https://dehlirious.github.io/PocketProxy/](https://dehlirious.github.io/PocketProxy/)*
 
 ---
 
