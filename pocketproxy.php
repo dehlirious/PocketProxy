@@ -53,19 +53,19 @@ function get_domain($url)
 //To enable CORS (cross-origin resource sharing) for proxied sites, set $forceCORS to true.
 $forceCORS = true;//I see no reason to have this disabled
 
-//Set to false to allow sites on the local network (where miniProxy is running) to be proxied.
+//Set to false to allow sites on the local network (where PocketProxy is running) to be proxied.
 $disallowLocal = true;
 
 //Set to false to report the client machine's IP address to proxied sites via the HTTP `x-forwarded-for` header.
 //Setting to false may improve compatibility with some sites, but also exposes more information about end users to proxied sites.
 $anonymize = true;
 
-//Start/default URL that that will be proxied when miniProxy is first loaded in a browser/accessed directly with no URL to proxy.
-//If empty, miniProxy will show its own landing page.
+//Start/default URL that that will be proxied when PocketProxy is first loaded in a browser/accessed directly with no URL to proxy.
+//If empty, PocketProxy will show its own landing page.
 $startURL = "";
 
-//When no $startURL is configured above, miniProxy will show its own landing page with a URL form field
-//and the configured example URL. The example URL appears in the instructional text on the miniProxy landing page,
+//When no $startURL is configured above, PocketProxy will show its own landing page with a URL form field
+//and the configured example URL. The example URL appears in the instructional text on the PocketProxy landing page,
 //and is proxied when pressing the 'Proxy It!' button on the landing page if its URL form is left blank.
 $landingExampleURL = "https://example.net";
 
@@ -74,13 +74,13 @@ $landingExampleURL = "https://example.net";
 ob_start("ob_gzhandler");
 
 if (version_compare(PHP_VERSION, "5.4.7", "<")) {
-  die("miniProxy requires PHP version 5.4.7 or later.");
+  die("PocketProxy requires PHP version 5.4.7 or later.");
 }
 
 $requiredExtensions = ["curl", "mbstring", "xml"];
 foreach($requiredExtensions as $requiredExtension) {
   if (!extension_loaded($requiredExtension)) {
-    die("miniProxy requires PHP's \"" . $requiredExtension . "\" extension. Please install/enable it on your server and try again.");
+    die("PocketProxy requires PHP's \"" . $requiredExtension . "\" extension. Please install/enable it on your server and try again.");
   }
 }
 
@@ -187,7 +187,7 @@ function makeRequest($url) {
   //Tell cURL to make the request using the brower's user-agent if there is one, or a fallback user-agent otherwise.
   $user_agent = $_SERVER["HTTP_USER_AGENT"];
   if (empty($user_agent)) {
-    $user_agent = "Mozilla/5.0 (compatible; miniProxy)";
+    $user_agent = "Mozilla/5.0 (compatible; PocketProxy)";
   }
   $ch = curl_init();
   curl_setopt($ch, CURLOPT_USERAGENT, $user_agent);
@@ -448,7 +448,7 @@ if (empty($scheme)) {
     $url = "http://" . $url;
   }
 } else if (!preg_match("/^https?$/i", $scheme)) {
-    die('Error: Detected a "' . $scheme . '" URL. miniProxy exclusively supports http[s] URLs.');
+    die('Error: Detected a "' . $scheme . '" URL. PocketProxy exclusively supports http[s] URLs.');
 }
 
 if (!isValidURL($url)) {
@@ -674,7 +674,7 @@ if (stripos($contentType, "text/html") !== false) {
 
   }
 
-  echo "<!-- Proxified page constructed by miniProxy -->\n" . $doc->saveHTML();
+  echo "<!-- Proxified page constructed by PocketProxy -->\n" . $doc->saveHTML();
 } else if (stripos($contentType, "text/css") !== false) { //This is CSS, so proxify url() references.
   echo proxifyCSS($responseBody, $url);
 } else { //This isn't a web page or CSS, so serve unmodified through the proxy with the correct headers (images, JavaScript, etc.)
