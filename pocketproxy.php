@@ -111,11 +111,11 @@ class Proxy {
 		}
 		else {
 			//The host is not a valid IP address; attempt to resolve it to one.
-			$dnsResult = dns_get_record($host, DNS_A + DNS_AAAA);
-			$ips = array_map(function ($dnsRecord) {
+			$dnsResult = @dns_get_record($host, DNS_A + DNS_AAAA);// bug warning code https://bugs.php.net/bug.php?id=73149 , supressed with '@'
+			$ips = @array_map(function ($dnsRecord) {//haven't been able to fix the bug "Uncaught TypeError: array_map(): Argument #2 ($array) must be of type array, bool given" *when* dns_check_record doesnt get a valid domain
 				return $dnsRecord["type"] == "A" ? $dnsRecord["ip"] : $dnsRecord["ipv6"];
 			}
-			, $dnsResult);
+			, @$dnsResult);
 		}
 		foreach ($ips as $ip) {
 			//Determine whether any of the IPs are in the private or reserved range.
@@ -317,7 +317,7 @@ class Proxy {
 	public function proxifySrcset($srcset, $baseURL) {
 		$sources = array_map("trim", explode(",", $srcset)); //Split all contents by comma and trim each value
 		$proxifiedSources = array_map(function ($source) use ($baseURL) {
-			$components = array_map("trim", str_split($source, nozeros($source))); //Split by last space and trim
+			$components = array_map("trim", str_split($source, $this->nozeros($source))); //Split by last space and trim
 			$components[0] = PROXY_PREFIX . $this->rel2abs(ltrim($components[0], "/") , $baseURL); //First component of the split source string should be an image URL; proxify it
 			$result = [];
 			foreach ($components as $item) {
