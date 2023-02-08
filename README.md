@@ -4,11 +4,7 @@ This is my own edition of *[http://joshdick.github.io/miniProxy](http://joshdick
 
 Demo it in live at *[https://zrr.us/pocketproxy.php](https://zrr.us/pocketproxy.php)*
 
-Joshua Dick originally made miniProxy and dropped development, I now occasionally update it under the name PocketProxy.
-
-*[http://joshdick.github.io/miniProxy](http://joshdick.github.io/miniProxy)*
-
-*[https://dehlirious.github.io/PocketProxy/](https://dehlirious.github.io/PocketProxy/)*
+Joshua Dick originally made miniProxy and dropped development, I now occasionally make updates to it
 
 ---
 
@@ -26,6 +22,8 @@ PocketProxy should be able to run on any web server with PHP 5.4.7 or later. Poc
 Simply copy `pocketproxy.php` to your web server (it's okay to rename it) and access it directly. That's it! You'll be presented with further usage instructions.
 
 PocketProxy doesn't require any configuration out of the box, but configuration options are available; see the top of `pocketproxy.php` for details.
+
+*[https://dehlirious.github.io/PocketProxy/](https://dehlirious.github.io/PocketProxy/)*
 
 ## Known Limitations
 
