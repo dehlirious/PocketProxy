@@ -4,17 +4,17 @@ use Gregwar\Captcha\CaptchaBuilder;
 use Gregwar\Captcha\PhraseBuilder;
 
 class Proxy {
-	public $a, $forceCORS, $cce, $prefixPort, $prefixHost, $blacklistPatterns, $captchasitesz, $httpvariable, $whitelistPatterns, $disallowLocal, $anonymize, $startURL, $landingExampleURL, $requiredExtensions;
+	public $a, $maxdl, $forceCORS, $cce, $prefixPort, $prefixHost, $blacklistPatterns, $captchasitesz, $httpvariable, $whitelistPatterns, $disallowLocal, $anonymize, $startURL, $landingExampleURL, $requiredExtensions;
 	public function __construct() {
 		//To allow proxying any URL, set $whitelistPatterns to an empty array (the default).
 		$this->whitelistPatterns = [
 		//Usage example: To whitelist any URL at example.net, including sub-domains, uncomment the
 		//line below (which is equivalent to [ @^https?://([a-z0-9-]+\.)*example\.net@i ]):
-		//getHostnamePattern("example.net")
+		//$this->getHostnamePattern("example.net")
 		];
 
 		$this->blacklistPatterns = [
-		//getHostnamePattern("example.net")
+		//$this->getHostnamePattern("example.net")
 		];
 
 		//To make a user enter a captcha for specified website(s)
@@ -40,6 +40,8 @@ class Proxy {
 		//Start/default URL that that will be proxied when PocketProxy is first loaded in a browser/accessed directly with no URL to proxy.
 		//If empty, PocketProxy will show its own landing page.
 		$this->startURL = "";
+		
+		$this->maxdl = 1444440000; //1.44gb downloaded file size limitation(like mp4's and such) 
 
 		//When no $startURL is configured above, PocketProxy will show its own landing page with a URL form field
 		//and the configured example URL. The example URL appears in the instructional text on the PocketProxy landing page,
@@ -218,6 +220,7 @@ class Proxy {
 
 		//Set the request URL.
 		curl_setopt($ch, CURLOPT_URL, $url);
+		curl_setopt($ch, CURLOPT_MAXFILESIZE, $this->maxdl); 
 
 		//Make the request.
 		$response = curl_exec($ch);
@@ -532,10 +535,13 @@ if (stripos($contentType, "text/html") !== false) {
 	if ($detectedEncoding) {
 		$responseBody = mb_convert_encoding($responseBody, "HTML-ENTITIES", $detectedEncoding);
 	}
-
+	if(empty($responseBody)){
+		$responseBody = " ";
+	}
+	
 	//Parse the DOM.
 	$doc = new DomDocument();
-	@$doc->loadHTML($responseBody);
+	@$doc->loadHTML($responseBody); //Real odd errors likePHP message: PHP Warning:  DOMDocument::loadHTML(): Tag footer invalid in Entity when this isn't suppressed
 	$xpath = new DOMXPath($doc);
 
 	//Rewrite forms so that their actions point back to the proxy.
