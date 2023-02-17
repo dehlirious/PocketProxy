@@ -533,7 +533,7 @@ if (stripos($contentType, "text/html") !== false) {
 	//Attempt to normalize character encoding.
 	$detectedEncoding = mb_detect_encoding($responseBody, "UTF-8, ISO-8859-1");
 	if ($detectedEncoding) {
-		$responseBody = mb_convert_encoding($responseBody, "HTML-ENTITIES", $detectedEncoding);
+		$responseBody = htmlspecialchars_decode($responseBody);
 	}
 	if(empty($responseBody)){
 		$responseBody = " ";
