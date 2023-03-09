@@ -4,7 +4,7 @@ use Gregwar\Captcha\CaptchaBuilder;
 use Gregwar\Captcha\PhraseBuilder;
 
 class Proxy {
-	public $a, $maxdl, $forceCORS, $cce, $prefixPort, $prefixHost, $blacklistPatterns, $captchasitesz, $httpvariable, $whitelistPatterns, $disallowLocal, $anonymize, $startURL, $landingExampleURL, $requiredExtensions;
+	public $a, $maxdl, $forceCORS, $cce, $prefixPort, $blacklistlog, $prefixHost, $blacklistPatterns, $captchasitesz, $httpvariable, $whitelistPatterns, $disallowLocal, $anonymize, $startURL, $landingExampleURL, $requiredExtensions;
 	public function __construct() {
 		//To allow proxying any URL, set $whitelistPatterns to an empty array (the default).
 		$this->whitelistPatterns = [
@@ -40,13 +40,16 @@ class Proxy {
 		//Start/default URL that that will be proxied when PocketProxy is first loaded in a browser/accessed directly with no URL to proxy.
 		//If empty, PocketProxy will show its own landing page.
 		$this->startURL = "";
-		
-		$this->maxdl = 1444440000; //1.44gb downloaded file size limitation(like mp4's and such) 
 
+		$this->maxdl = 1444440000; //1.44gb downloaded file size limitation(like mp4's and such)
+		
 		//When no $startURL is configured above, PocketProxy will show its own landing page with a URL form field
 		//and the configured example URL. The example URL appears in the instructional text on the PocketProxy landing page,
 		//and is proxied when pressing the 'Proxy It!' button on the landing page if its URL form is left blank.
 		$this->landingExampleURL = "https://example.net";
+		
+		//Please change this
+		$this->blacklistlog = "no/captcha.log";
 
 		$this->requiredExtensions = ["curl", "mbstring", "xml"];
 
@@ -81,6 +84,19 @@ class Proxy {
 		$escapedHostname = str_replace(".", "\.", $hostname);
 		return "@^https?://([a-z0-9-]+\.)*" . $escapedHostname . "@i";
 	}
+	public function logcbl($url) {
+		if(file_exists($this-blacklistlog)){
+			$file = file($this->blacklistlog);
+			$line_count_pre = count($file);
+			$content = "" . $this->getUserIp() . "; #" . ".$url.". PHP_EOL; 
+			$file[] = $content;
+			$line_count_post = count(array_unique($file));
+			unset($file);
+			if ($line_count_post > $line_count_pre) { //Note: this isn't going to work as intended, to disallow duplicate results unless the url is the same, when . ".$url." is added;
+				file_put_contents($this->blacklistlog, "" . $this->getUserIp() . "; #" . ".$url.". PHP_EOL, FILE_APPEND | LOCK_EX);
+			}
+		}
+	}
 	//Validates a URL against the whitelist
 	public function passesWhitelist($url) {
 		if (count($this->whitelistPatterns) === 0) {
@@ -113,8 +129,8 @@ class Proxy {
 		}
 		else {
 			//The host is not a valid IP address; attempt to resolve it to one.
-			$dnsResult = @dns_get_record($host, DNS_A + DNS_AAAA);// bug warning code https://bugs.php.net/bug.php?id=73149 , supressed with '@'
-			$ips = @array_map(function ($dnsRecord) {//haven't been able to fix the bug "Uncaught TypeError: array_map(): Argument #2 ($array) must be of type array, bool given" *when* dns_check_record doesnt get a valid domain
+			$dnsResult = @dns_get_record($host, DNS_A + DNS_AAAA); // bug warning code https://bugs.php.net/bug.php?id=73149 , supressed with '@'
+			$ips = @array_map(function ($dnsRecord) { //haven't been able to fix the bug "Uncaught TypeError: array_map(): Argument #2 ($array) must be of type array, bool given" *when* dns_check_record doesnt get a valid domain
 				return $dnsRecord["type"] == "A" ? $dnsRecord["ip"] : $dnsRecord["ipv6"];
 			}
 			, @$dnsResult);
@@ -131,7 +147,27 @@ class Proxy {
 	public function isValidURL($url) {
 		return $this->passesWhitelist($url) && $this->passesBlacklist($url) && ($this->disallowLocal ? !$this->isLocal($url) : true);
 	}
+	public function getUserIp() {
+		$client = @$_SERVER['HTTP_CLIENT_IP']; //Use @ or get "PHP Notice:  Undefined index: HTTP_CLIENT_IP"  errors
+		$forward = @$_SERVER['HTTP_X_FORWARDED_FOR'];
+		$cf_ip = @$_SERVER['HTTP_CF_CONNECTING_IP']; //Cloudflare+nginx w/ realip module
+		$remote = $_SERVER['REMOTE_ADDR'];
+		if (filter_var($client, FILTER_VALIDATE_IP)) {
+			$ip = $client;
+		}
+		elseif (filter_var($forward, FILTER_VALIDATE_IP)) {
+			$ip = $forward;
+		}
+		elseif (filter_var($cf_ip, FILTER_VALIDATE_IP)) {
+			$ip = $cf_ip;
+		}
+		else {
+			$ip = filter_var($remote, FILTER_VALIDATE_IP);
+		}
 
+		$this->ip = $ip;
+		return $ip;
+	}
 	//Helper function used to removes/unset keys from an associative array using case insensitive matching
 	public function removeKeys(&$assoc, $keys2remove) {
 		$keys = array_keys($assoc);
@@ -220,7 +256,7 @@ class Proxy {
 
 		//Set the request URL.
 		curl_setopt($ch, CURLOPT_URL, $url);
-		curl_setopt($ch, CURLOPT_MAXFILESIZE, $this->maxdl); 
+		curl_setopt($ch, CURLOPT_MAXFILESIZE, $this->maxdl);
 
 		//Make the request.
 		$response = curl_exec($ch);
@@ -463,6 +499,7 @@ elseif (!preg_match("/^https?$/i", $scheme)) {
 }
 
 if (!$proxy->isValidURL($url)) {
+	$proxy->logcbl($url);
 	die("Error: The requested URL was disallowed by the server administrator.");
 }
 
@@ -535,13 +572,13 @@ if (stripos($contentType, "text/html") !== false) {
 	if ($detectedEncoding) {
 		$responseBody = mb_convert_encoding($responseBody, "HTML-ENTITIES", $detectedEncoding);
 	}
-	if(empty($responseBody)){
+	if (empty($responseBody)) {
 		$responseBody = " ";
 	}
-	
+
 	//Parse the DOM.
 	$doc = new DomDocument();
-	@$doc->loadHTML($responseBody); //Real odd errors likePHP message: PHP Warning:  DOMDocument::loadHTML(): Tag footer invalid in Entity when this isn't suppressed
+	@$doc->loadHTML($responseBody);
 	$xpath = new DOMXPath($doc);
 
 	//Rewrite forms so that their actions point back to the proxy.
