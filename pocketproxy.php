@@ -340,23 +340,28 @@ class Proxy {
 		}
 		, $normalizedCSS);
 	}
+	
 	//Added to prevent empty responses and remove php warning codes
-	public function nozeros($source) {
-		if ($source > 0.0) {
-			return strrpos($source, " ");
+	public function nozeros($ss) {
+		if ($ss > 0.0) {
+			return strrpos($ss, " ");
 		}
 		else {
-			return 1; //intval($source);
-			
+			return 1; //intval($x);
 		}
-		return strrpos($source, " ");
 	}
 
 	//Proxify "srcset" attributes (normally associated with <img> tags.)
 	public function proxifySrcset($srcset, $baseURL) {
 		$sources = array_map("trim", explode(",", $srcset)); //Split all contents by comma and trim each value
 		$proxifiedSources = array_map(function ($source) use ($baseURL) {
-			$components = array_map("trim", str_split($source, $this->nozeros($source))); //Split by last space and trim
+			$sauce = $this->nozeros($source);
+			if($sauce = 1) {
+				$components = array_map("trim", str_split($source));
+			} else {
+				$components = array_map("trim", str_split($source,$sauce));//Split by last space and trim
+			}
+			
 			$components[0] = PROXY_PREFIX . $this->rel2abs(ltrim($components[0], "/") , $baseURL); //First component of the split source string should be an image URL; proxify it
 			$result = [];
 			foreach ($components as $item) {
