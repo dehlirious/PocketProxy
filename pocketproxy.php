@@ -85,7 +85,7 @@ class Proxy {
 		return "@^https?://([a-z0-9-]+\.)*" . $escapedHostname . "@i";
 	}
 	public function logcbl($url) {
-		if(file_exists($this-blacklistlog)){
+		if(file_exists($this->blacklistlog)){
 			$file = file($this->blacklistlog);
 			$line_count_pre = count($file);
 			$content = "" . $this->getUserIp() . "; #" . ".$url.". PHP_EOL; 
