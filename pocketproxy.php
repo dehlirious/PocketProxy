@@ -731,6 +731,13 @@ if (stripos($contentType, "text/html") !== false) {
 
 		$prependElem->insertBefore($scriptElem, $prependElem->firstChild);
 	}
+	
+	//I noticed Google results were ?url=https:/ and not ?url=https:// causing them to not function
+	$nodes = $xpath->query('//a/@href');
+	foreach($nodes as $node){
+		$node->textContent = preg_replace('/(?i)https\:\/(?!\/)/', "https://", $node->textContent);
+		$node->textContent = preg_replace('/(?i)http\:\/(?!\/)/', "http://", $node->textContent);
+	}
 
 	echo "<!-- Proxified page constructed by PocketProxy -->\n" . $doc->saveHTML($doc->documentElement);//Should fix my UTF-8 ecoding error https://stackoverflow.com/questions/8218230/php-domdocument-loadhtml-not-encoding-utf-8-correctly
 }
