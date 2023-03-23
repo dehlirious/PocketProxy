@@ -41,7 +41,7 @@ class Proxy {
 		//If empty, PocketProxy will show its own landing page.
 		$this->startURL = "";
 
-		$this->maxdl = 1444440000; //1.44gb downloaded file size limitation(like mp4's and such, although currently all files download as "scriptname.php")
+		$this->maxdl = 1444440000; //1.44gb downloaded file size limitation(like mp4's and such)
 		
 		//When no $startURL is configured above, PocketProxy will show its own landing page with a URL form field
 		//and the configured example URL. The example URL appears in the instructional text on the PocketProxy landing page,
@@ -749,6 +749,7 @@ else {
 	//This isn't a web page or CSS, so serve unmodified through the proxy with the correct headers (images, JavaScript, etc.)
 	header("Content-Length: " . strlen($responseBody) , true);
 	header("Content-Type: " . $contentType); //not having this was causing a bunch of issues
+	header('Content-Disposition: filename="'.basename(parse_url($url, PHP_URL_PATH).'"'));//Keep same filename when downloading from server, doesn't always work but is better
 	echo $responseBody;
 }
 
