@@ -41,7 +41,7 @@ class Proxy {
 		//If empty, PocketProxy will show its own landing page.
 		$this->startURL = "";
 
-		$this->maxdl = 1444440000; //1.44gb downloaded file size limitation(like mp4's and such)
+		$this->maxdl = 1444440000; //1.44gb downloaded file size limitation(like mp4's and such, although currently all files download as "scriptname.php")
 		
 		//When no $startURL is configured above, PocketProxy will show its own landing page with a URL form field
 		//and the configured example URL. The example URL appears in the instructional text on the PocketProxy landing page,
@@ -130,10 +130,13 @@ class Proxy {
 		else {
 			//The host is not a valid IP address; attempt to resolve it to one.
 			$dnsResult = @dns_get_record($host, DNS_A + DNS_AAAA); // bug warning code https://bugs.php.net/bug.php?id=73149 , supressed with '@'
-			$ips = @array_map(function ($dnsRecord) { //haven't been able to fix the bug "Uncaught TypeError: array_map(): Argument #2 ($array) must be of type array, bool given" *when* dns_check_record doesnt get a valid domain
-				return $dnsRecord["type"] == "A" ? $dnsRecord["ip"] : $dnsRecord["ipv6"];
+			
+			if(!is_bool($dnsResult)){//Fixes my array_map error. Doesn't fix the blank page when the domain isn't resolvable.
+				$ips = array_map(function ($dnsRecord) { 
+					return $dnsRecord["type"] == "A" ? $dnsRecord["ip"] : $dnsRecord["ipv6"];
+				}
+				, $dnsResult);
 			}
-			, @$dnsResult);
 		}
 		foreach ($ips as $ip) {
 			//Determine whether any of the IPs are in the private or reserved range.
@@ -201,7 +204,6 @@ class Proxy {
 
 		//...but let cURL set some headers on its own.
 		$removedHeaders = $this->removeKeys($browserRequestHeaders, [
-		// "Accept-Encoding", // Removed because it gave me issues! I don't know why yet, i assume a php gzip misconfiguration//Throw away the browser's Accept-Encoding header if any and let cURL make the request using gzip if possible.
 		"Content-Length", "permissions-policy", "strict-transport-security", "report-to", "Host", "x-content-type-options", "cross-origin-opener-policy-report-only", "content-security-policy", "x-frame-options", "x-robots-tag", "x-xss-protection", "X-Frame-Options", //Added but not necessary it seems
 		"Origin", ]);
 
@@ -362,7 +364,8 @@ class Proxy {
 				$components = array_map("trim", str_split($source,$sauce));//Split by last space and trim
 			}
 			
-			$components[0] = PROXY_PREFIX . $this->rel2abs(ltrim($components[0], "/") , $baseURL); //First component of the split source string should be an image URL; proxify it
+			//UPDATED TO POTENTIALLY FIX  Undefined array key 0
+			$components[0] = PROXY_PREFIX . $this->rel2abs(ltrim(array_key_exists(0, $components) ? $components[0] : '', "/") , $baseURL); //First component of the split source string should be an image URL; proxify it
 			$result = [];
 			foreach ($components as $item) {
 				if (preg_match("/'(.*?)' => '(.*?)'/", $item, $matches)) {
@@ -440,18 +443,13 @@ if (in_array($variable1, $proxy->captchasitesz)) {
 	$variable3 = false;
 	if ($_SERVER["REQUEST_METHOD"] == "POST") {
 		// Checking that the posted phrase match the phrase stored in the session
-		if (isset($_SESSION["phrase"]) && PhraseBuilder::comparePhrases($_SESSION["phrase"], $_POST["phrase"])) {
-			$variable2 = true;
-			//if (!empty($_SESSION['CREATED'])) {//Originally added to remove a php warning code, but ruined functionality
-			if (!isset($_SESSION["CREATED"])) {
-				$_SESSION["CREATED"] = time();
+		if (isset($_SESSION["phrase"])) { 
+			if(PhraseBuilder::comparePhrases($_SESSION["phrase"], $_POST["phrase"])){
+				$variable2 = true;
+				if (!isset($_SESSION["CREATED"])) {
+					$_SESSION["CREATED"] = time();
+				}
 			}
-			//}
-			/*else if (time() - $_SESSION['CREATED'] > 1800) {
-			         // session started more than 30 minutes ago
-			         session_regenerate_id(true);    // change session ID for the current session and invalidate old session ID
-			         $_SESSION['CREATED'] = time();  // update creation time
-			         }*/
 		}
 		else {
 			echo "<h1>Captcha is not valid!</h1>";
@@ -459,7 +457,6 @@ if (in_array($variable1, $proxy->captchasitesz)) {
 	}
 	// The phrase can't be used twice
 	unset($_SESSION["phrase"]);
-	//if($_SESSION['CREATED'] ?? null) {
 	if (array_key_exists("CREATED", $_SESSION)) {
 		if (time() - $_SESSION["CREATED"] > 1800) {
 			$variable3 = true;
@@ -502,6 +499,8 @@ if (empty($scheme)) {
 elseif (!preg_match("/^https?$/i", $scheme)) {
 	die('Error: Detected a "' . $scheme . '" URL. PocketProxy exclusively supports http[s] URLs.');
 }
+$url = str_replace(array('http://?','https://?'), '', $url);//This is going to fix a lot of weirds but potentially not all!
+$url = str_replace(array('?http://','?https://'), array('http://','https://'), $url);
 
 if (!$proxy->isValidURL($url)) {
 	$proxy->logcbl($url);
@@ -733,7 +732,7 @@ if (stripos($contentType, "text/html") !== false) {
 		$prependElem->insertBefore($scriptElem, $prependElem->firstChild);
 	}
 
-	echo "<!-- Proxified page constructed by PocketProxy -->\n" . $doc->saveHTML();
+	echo "<!-- Proxified page constructed by PocketProxy -->\n" . $doc->saveHTML($doc->documentElement);//Should fix my UTF-8 ecoding error https://stackoverflow.com/questions/8218230/php-domdocument-loadhtml-not-encoding-utf-8-correctly
 }
 elseif (stripos($contentType, "text/css") !== false) {
 	//This is CSS, so proxify url() references.
