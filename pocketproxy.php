@@ -752,6 +752,14 @@ elseif (stripos($contentType, "text/javascript") !== false) {
 	header("Content-Type: text/javascript");
 	echo $responseBody;
 }
+elseif (stripos($contentType, "multipart/form-data") !== false) { 
+//The problem here is that the boundary, something like
+//boundary=----WebKitFormBoundaryyEmKNDsBKjB7QEqu
+//never makes it into the Content-Type: header
+//So remove the content-type and the browser will fill in the rest
+	header("Content-Length: " . strlen($responseBody) , true);
+	echo $responseBody;
+}
 else {
 	//This isn't a web page or CSS, so serve unmodified through the proxy with the correct headers (images, JavaScript, etc.)
 	header("Content-Length: " . strlen($responseBody) , true);
