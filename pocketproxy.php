@@ -733,25 +733,24 @@ if (stripos($contentType, "text/html") !== false) {
 	}
 	
 	//I noticed Google results were ?url=https:/ and not ?url=https:// causing them to not function
-	$nodes = $xpath->query('//a/@href');
-	foreach($nodes as $node){
-		$node->textContent = preg_replace('/(?i)https\:\/(?!\/)/', "https://", $node->textContent);
-		$node->textContent = preg_replace('/(?i)http\:\/(?!\/)/', "http://", $node->textContent);
+	foreach ($doc->getElementsByTagName('a') as $link) {
+	   $link->setAttribute('href', preg_replace(array('/https\:\/(?!\/)/', '/http\:\/(?!\/)/'), array('https://', 'http://'), $link->getAttribute('href')));
 	}
 
 	echo "<!-- Proxified page constructed by PocketProxy -->\n" . $doc->saveHTML($doc->documentElement);//Should fix my UTF-8 ecoding error https://stackoverflow.com/questions/8218230/php-domdocument-loadhtml-not-encoding-utf-8-correctly
 }
-elseif (stripos($contentType, "text/css") !== false) {
+//Trying to figure out why PHP exhausted 6383730688 bytes , trying to allocate more 2093393984 bytes.. Memory leak or big downloads, not sure, but trying to reduce processing in the meantime
+#elseif (stripos($contentType, "text/css") !== false) {
 	//This is CSS, so proxify url() references.
-	echo $proxy->proxifyCSS($responseBody, $url);
-	header("Content-Type: text/css");
-}
-elseif (stripos($contentType, "text/javascript") !== false) {
+#	echo $proxy->proxifyCSS($responseBody, $url);
+#	header("Content-Type: text/css");
+#}
+#elseif (stripos($contentType, "text/javascript") !== false) {
 	//This is CSS, so proxify url() references.
-	header("Content-Length: " . strlen($responseBody) , true);
-	header("Content-Type: text/javascript");
-	echo $responseBody;
-}
+#	header("Content-Length: " . strlen($responseBody) , true);
+#	header("Content-Type: text/javascript");
+#	echo $responseBody;
+#}
 elseif (stripos($contentType, "multipart/form-data") !== false) { 
 //The problem here is that the boundary, something like
 //boundary=----WebKitFormBoundaryyEmKNDsBKjB7QEqu
