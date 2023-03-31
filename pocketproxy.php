@@ -237,11 +237,11 @@ class Proxy {
 				//but the php://input method works. This is likely to be flaky
 				//across different server environments.
 				//More info here: http://stackoverflow.com/questions/8899239/http-raw-post-data-not-being-populated-after-upgrade-to-php-5-3
-				//If the miniProxyFormAction field appears in the POST data, remove it so the destination server doesn't receive it.
+				//If the ProxyForm field appears in the POST data, remove it so the destination server doesn't receive it.
 				$postData = [];
 				parse_str(file_get_contents("php://input") , $postData);
-				if (isset($postData["miniProxyFormAction"])) {
-					unset($postData["miniProxyFormAction"]);
+				if (isset($postData["ProxyForm"])) {
+					unset($postData["ProxyForm"]);
 				}
 				curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postData));
 			break;
@@ -403,17 +403,17 @@ if (!function_exists("getallheaders")) {
 }
 
 //Extract and sanitize the requested URL, handling cases where forms have been rewritten to point to the proxy.
-if (isset($_POST["miniProxyFormAction"])) {
-	$url = $_POST["miniProxyFormAction"];
-	unset($_POST["miniProxyFormAction"]);
+if (isset($_POST["ProxyForm"])) {
+	$url = $_POST["ProxyForm"];
+	unset($_POST["ProxyForm"]);
 }
 else {
 	$queryParams = [];
 	parse_str($_SERVER["QUERY_STRING"], $queryParams);
-	//If the miniProxyFormAction field appears in the query string, make $url start with its value, and rebuild the the query string without it.
-	if (isset($queryParams["miniProxyFormAction"])) {
-		$formAction = $queryParams["miniProxyFormAction"];
-		unset($queryParams["miniProxyFormAction"]);
+	//If the ProxyForm field appears in the query string, make $url start with its value, and rebuild the the query string without it.
+	if (isset($queryParams["ProxyForm"])) {
+		$formAction = $queryParams["ProxyForm"];
+		unset($queryParams["ProxyForm"]);
 		$url = $formAction . "?" . http_build_query($queryParams);
 	}
 	else {
@@ -441,18 +441,22 @@ session_start();
 if (in_array($variable1, $proxy->captchasitesz)) {
 	$variable2 = false;
 	$variable3 = false;
-	if ($_SERVER["REQUEST_METHOD"] == "POST") {
-		// Checking that the posted phrase match the phrase stored in the session
-		if (isset($_SESSION["phrase"])) { 
+	if (isset($_SESSION["phrase"])) {
 			if(PhraseBuilder::comparePhrases($_SESSION["phrase"], $_POST["phrase"])){
 				$variable2 = true;
+				//if (!empty($_SESSION['CREATED'])) {//Originally added to remove a php warning code, but ruined functionality
 				if (!isset($_SESSION["CREATED"])) {
 					$_SESSION["CREATED"] = time();
 				}
+				else if (time() - $_SESSION['CREATED'] > 1800) {
+					// session started more than 30 minutes ago
+					session_regenerate_id(true);    // change session ID for the current session and invalidate old session ID
+					$_SESSION['CREATED'] = time();  // update creation time
+				}
 			}
-		}
-		else {
-			echo "<h1>Captcha is not valid!</h1>";
+			else{
+				$ehrx = "<h1>Captcha is not valid!</h1>";
+			}
 		}
 	}
 	// The phrase can't be used twice
@@ -476,6 +480,7 @@ if (in_array($variable1, $proxy->captchasitesz)) {
 ?>
          <img src="<?php echo $captcha->inline(); ?>"/><br/>
         <?php if ($proxy->cce) {
+			if(isset($ehrx)){echo $ehrx;}
 			echo "Cheat Code: " . $captcha->getPhrase();
 		} ?>
         <input type="text" name="phrase" />
@@ -596,7 +601,7 @@ if (stripos($contentType, "text/html") !== false) {
 		$form->setAttribute("action", rtrim(PROXY_PREFIX, "?"));
 		//Add a hidden form field that the proxy can later use to retreive the original form action.
 		$actionInput = $doc->createDocumentFragment();
-		$actionInput->appendXML('<input type="hidden" name="miniProxyFormAction" value="' . htmlspecialchars($action) . '" />');
+		$actionInput->appendXML('<input type="hidden" name="ProxyForm" value="' . htmlspecialchars($action) . '" />');
 		$form->appendChild($actionInput);
 	}
 	//Proxify <meta> tags with an 'http-equiv="refresh"' attribute.
