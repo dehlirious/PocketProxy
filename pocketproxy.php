@@ -488,7 +488,6 @@ if (in_array($variable1, $proxy->captchasitesz)) {
     </form>
 		<?php die();
 	}
-}
 
 $scheme = parse_url($url, PHP_URL_SCHEME);
 if (empty($scheme)) {
