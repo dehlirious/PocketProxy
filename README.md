@@ -15,7 +15,7 @@ PocketProxy is the successor to [https://github.com/joshdick/miniProxy](https://
 
 ## Prerequisites
 
-PocketProxy should be able to run on any web server with PHP 5.4.7 or later. PocketProxy requires PHP's `curl`, `mbstring` and `xml` extensions to be installed.
+PocketProxy should be able to run on any web server with PHP 5.4.7 or later. PocketProxy requires PHP's `curl`, `mbstring` and `xml` extensions to be installed alongside `gd` for captcha usage.
 
 ## Installation and Use
 
