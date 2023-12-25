@@ -1,10 +1,12 @@
 <?php
-include "Captcha/AIO-Captcha.php";
+//Too many captcha bypassing methods; I did not set it up with security in mind, rather, bot prevention!
+
+include "pages/Captcha/AIO-Captcha.php";
 use Gregwar\Captcha\CaptchaBuilder;
 use Gregwar\Captcha\PhraseBuilder;
 
 class Proxy {
-	public $a, $maxdl, $forceCORS, $cce, $prefixPort, $blacklistlog, $prefixHost, $blacklistPatterns, $captchasitesz, $httpvariable, $whitelistPatterns, $disallowLocal, $anonymize, $startURL, $landingExampleURL, $requiredExtensions;
+	public $a, $maxdl, $forceCORS, $blacklistlog, $cce, $prefixPort, $prefixHost, $blacklistPatterns, $captchasitesz, $httpvariable, $whitelistPatterns, $disallowLocal, $anonymize, $startURL, $landingExampleURL, $requiredExtensions;
 	public function __construct() {
 		//To allow proxying any URL, set $whitelistPatterns to an empty array (the default).
 		$this->whitelistPatterns = [
@@ -14,18 +16,45 @@ class Proxy {
 		];
 
 		$this->blacklistPatterns = [
-		//$this->getHostnamePattern("example.net")
-		];
+		$this->getHostnamePattern("YOURDOMAIN.COM") , $this->getHostnamePattern("httpbin.org") ];
 
-		//To make a user enter a captcha for specified website(s)
-		$this->captchasitesz = ["badactorwebsite9512521.org", "archive.is", "archive.li", ];
+		//To make a user enter a captcha for specified website(s) "archive.org"
+		$this->captchasitesz = 
+		[
+		"arbforum.com","xbox.com","phncdn.com","tktube.com","syosetu.com","youtube.com","wipo.int","icann.org","xxx18hot.com", 
+		"internetchicks.com", "177picyy.com", "content.leenks.com", "thehackerspro.com", "camghosts.com", "teen-xxx.name", 
+		"xxx18hot.com", "scatshop.com", "freshscat.com", "barnorama.com", "thisvid.com", "ww6.soap2day.day", "aporntv.com", "japeal.com", 
+		"pic.alohaporn.me", "tufos.com.br", "faceplay.me", "mage.space", "empflix.com", "177picyy.com", "hentaipulse.com", 
+		"hl.proxys5.net", "en.luxuretv.com", "no.plus90.com", "gelbooru.com", "duckdns.org", "erofus.com", "mb13.men", "steamcommunity.com", 
+		"itest.5ch.net", "5ch.net", "steamgifts.com", "archive.ph", "archive.md", "archive.is", "archive.li", "archive.vn", "archive.org", "archive.com",
+		"epochtimes.com","rule34.xxx","jerkmate.com","realsrv.com",];
+		
+		$this->captchaua = ["Amazonbot/0.1", "Googlebot/2.1", "Bingbot/2.0", "Slackbot/1.0", "Facebookbot/2.1", "Twitterbot/2.0", 
+		"LinkedInBot/2.0", "Pinterest/0.1", "Tumblr/1.0", "Applebot/1.0", "WhatsApp/2.0", "Skypebot/1.0", "Snapchat/1.0", "Discordbot/2.0", 
+		"Redditbot/1.0", "Yandexbot/3.0", "Ahrefsbot/5.0", "Majestic-12/1.0", "CommonCrawl/2.0", "SemrushBot/3.0", "Baiduspider/2.0", 
+		"Exabot/1.0", "Sogou web spider/2.0", "DuckDuckGo/1.0", "Blekko/1.0", "BingPreview/1.0", "Ecosia/1.0", "Seznambot/3.0", 
+		"Xenu Link Sleuth/2.0", "Wayback Machine/3.0", "Wget/1.0", "Curl/7.0", "Python-urllib/3.0", "Ruby/2.0", "Java/1.0", "MJ12bot/1.0", 
+		"rogerbot/2.0", "Exabot/3.0", "Ezooms/1.0", "DotBot/1.0", "YandexImages/3.0", "Yahoo! Slurp/3.0", "Barkrowler/1.0", "CCBot/2.0", "
+		SemrushBot/2.0", "ia_archiver/2.0", "TurnitinBot/2.0", "BLEXBot/1.0", "AdsBot-Google/2.0", "Gigabot/3.0", "Yeti/1.0", "ZoominfoBot/1.0", 
+		"Nutch/1.0", "GrapeshotCrawler/2.0", "oBot/2.0", "Mail.RU_Bot/2.0", "BingPreview/2.0", "Screaming Frog SEO Spider/1.0", 
+		"magpie-crawler/1.0", "Baidu Spider/3.0", "LinkedInBot/1.0", "Curl/8.0", "PHP/7.0", "Python/3.0", "Go-http-client/1.0", 
+		"Java/11.0", "Ruby/3.0", "RamblerMail/1.0", "SeznamBot/1.0", "DuckDuckBot/1.0", "rogerbot/3.0", "YandexBot/4.0", "PaperLiBot/2.0", 
+		"Barkrowler/2.0", "Sogou web spider/3.0", "Wget/2.0", "libwww-perl/6.0", "PHP/8.0", "AhrefsBot/6.0", "BUbiNG/7.0", 
+		"Dataprovider.com/8.0", "Cortex/9.0", "DomainStatsBot/10.0", "SiteBot/11.0", "Qwantify/12.0", "AiHitBot/13.0", 
+		"Seekport Crawler/14.0", "PiplBot/15.0", "Zenserp/16.0", "g00g1e.net/17.0", "PaperBot/18.0", "YippyBot/19.0", "DuckDuckGo/20.0", 
+		"SputnikBot/21.0", "LinksSpyder/22.0", "SerendeputyBot/23.0", "PingdomBot/24.0", "Hatena Crawler/25.0", 
+		"Screaming Frog SEO Spider/26.0", "NaverBot/27.0", "Bingbot/28.0", "DotBot/2.0", "SeznamBot/2.0", "MJ12bot/2.0", "BLEXBot/2.0", 
+		"Sogou web spider/4.0", "Gigabot/4.0", "YandexBot/5.0", "Yahoo! Slurp/4.0", "SemrushBot/3.0", "TurnitinBot/3.0", "AdsBot-Google/3.0", 
+		"Googlebot-Image/1.0", "BingPreview/3.0", "Qwantify/2.0", "Curl/9.0", "Python/4.0", "Java/12.0", "Ruby/4.0", 
+		"RamblerMail/2.0", "oBot/3.0", "Mail.RU_Bot/3.0", "Screaming Frog SEO Spider/2.0", "magpie-crawler/2.0", "Baidu Spider/4.0", 
+		"LinkedInBot/2.0", "PHP/9.0", "Go-http-client/2.0", "Googlebot-Mobile/1.0", "Bingbot-Mobile/1.0"] ;
 
 		// If you have a HTTPS:// website,  you need to set this to "https" otherwise there will be bugs and content(css/js) won't load properly!
 		// If you are on HTTP, this needs to be set to "http"
 		$this->httpvariable = "https";
 
 		//Change this to false to disable captcha codes from being displayed in plaintext
-		$this->cce = false;
+		$this->cce = true;
 
 		//To enable CORS (cross-origin resource sharing) for proxied sites, set forceCORS to true.
 		$this->forceCORS = true;
@@ -41,15 +70,15 @@ class Proxy {
 		//If empty, PocketProxy will show its own landing page.
 		$this->startURL = "";
 
-		$this->maxdl = 1444440000; //1.44gb downloaded file size limitation(like mp4's and such)
+		$this->maxdl = 2444440000; //1.44gb downloaded file size limitation(like mp4's and such)
 		
 		//When no $startURL is configured above, PocketProxy will show its own landing page with a URL form field
 		//and the configured example URL. The example URL appears in the instructional text on the PocketProxy landing page,
 		//and is proxied when pressing the 'Proxy It!' button on the landing page if its URL form is left blank.
 		$this->landingExampleURL = "https://example.net";
 		
-		//Please change this
-		$this->blacklistlog = "no/captcha.log";
+		//To protect Privacy, change this! rand() used to prevent any malicious user from snooping logs of unconfigured instances! But be warned, this will be spammy
+		$this->blacklistlog = "logxzx/".rand()."captchablacklist.log";
 
 		$this->requiredExtensions = ["curl", "mbstring", "xml"];
 
@@ -57,7 +86,7 @@ class Proxy {
 		$this->prefixHost = $_SERVER["HTTP_HOST"];
 		$this->prefixPort = "";
 		$this->prefixHost = strpos($this->prefixHost, ":") ? implode(":", explode(":", $_SERVER["HTTP_HOST"], -1)) : $this->prefixHost;
-		define("PROXY_PREFIX", $this->httpvariable . (isset($_SERVER["HTTPS"]) ? "s" : "") . "://" . $this->prefixHost . "" //.$prefixPort //was removed because it displayed port 80 and i haven't fixed it yet, will need uncommented if you are on a port other than :80
+		define("PROXY_PREFIX", $this->httpvariable . (isset($_SERVER["HTTPS"]) ? "" : "") . "://" . $this->prefixHost . "" //.$prefixPort //was removed because it displayed port 80 and i haven't fixed it yet, will need uncommented if you are on a port other than :80
 		 . $_SERVER["SCRIPT_NAME"] . "?");
 
 		if (version_compare(PHP_VERSION, "5.4.7", "<")) {
@@ -84,16 +113,19 @@ class Proxy {
 		$escapedHostname = str_replace(".", "\.", $hostname);
 		return "@^https?://([a-z0-9-]+\.)*" . $escapedHostname . "@i";
 	}
+
 	public function logcbl($url) {
 		if(file_exists($this->blacklistlog)){
 			$file = file($this->blacklistlog);
 			$line_count_pre = count($file);
-			$content = "" . $this->getUserIp() . "; #" . ".$url.". PHP_EOL; 
+			$content = "" . $this->getUserIp() . "; #" . ".$url." . PHP_EOL; //".$url."
 			$file[] = $content;
 			$line_count_post = count(array_unique($file));
 			unset($file);
-			if ($line_count_post > $line_count_pre) { //Note: this isn't going to work as intended, to disallow duplicate results unless the url is the same, when . ".$url." is added;
-				file_put_contents($this->blacklistlog, "" . $this->getUserIp() . "; #" . ".$url.". PHP_EOL, FILE_APPEND | LOCK_EX);
+			if ($line_count_post > $line_count_pre) {
+				//Note: this isn't going to work as intended, to disallow duplicate results unless the url is the same, when . ".$url." is added;
+				//BUT because this is called whenever a invalid IP is used, it is useful to know what set it off, blacklisted url or invalid url!
+				file_put_contents($this->blacklistlog, "" . $this->getUserIp() . "; #" . ".$url." . PHP_EOL, FILE_APPEND | LOCK_EX);
 			}
 		}
 	}
@@ -120,9 +152,14 @@ class Proxy {
 	}
 
 	public function isLocal($url) {
+		//BUG (ish~)
+		//normal https://example.net/ - example.net
+		//https://example.net/  with two slashes before script http://?https://example.net/  - (blank)
+		
 		//First, generate a list of IP addresses that correspond to the requested URL.
 		$ips = [];
 		$host = parse_url($url, PHP_URL_HOST);
+		
 		if (filter_var($host, FILTER_VALIDATE_IP)) {
 			//The supplied host is already a valid IP address.
 			$ips = [$host];
@@ -150,17 +187,18 @@ class Proxy {
 	public function isValidURL($url) {
 		return $this->passesWhitelist($url) && $this->passesBlacklist($url) && ($this->disallowLocal ? !$this->isLocal($url) : true);
 	}
+
 	public function getUserIp() {
 		$client = @$_SERVER['HTTP_CLIENT_IP']; //Use @ or get "PHP Notice:  Undefined index: HTTP_CLIENT_IP"  errors
-		$forward = @$_SERVER['HTTP_X_FORWARDED_FOR'];
+		//$forward = @$_SERVER['HTTP_X_FORWARDED_FOR'];
 		$cf_ip = @$_SERVER['HTTP_CF_CONNECTING_IP']; //Cloudflare+nginx w/ realip module
 		$remote = $_SERVER['REMOTE_ADDR'];
 		if (filter_var($client, FILTER_VALIDATE_IP)) {
 			$ip = $client;
 		}
-		elseif (filter_var($forward, FILTER_VALIDATE_IP)) {
-			$ip = $forward;
-		}
+		//elseif (filter_var($forward, FILTER_VALIDATE_IP)) {
+		//	$ip = $forward;
+		//}
 		elseif (filter_var($cf_ip, FILTER_VALIDATE_IP)) {
 			$ip = $cf_ip;
 		}
@@ -171,6 +209,7 @@ class Proxy {
 		$this->ip = $ip;
 		return $ip;
 	}
+
 	//Helper function used to removes/unset keys from an associative array using case insensitive matching
 	public function removeKeys(&$assoc, $keys2remove) {
 		$keys = array_keys($assoc);
@@ -204,6 +243,7 @@ class Proxy {
 
 		//...but let cURL set some headers on its own.
 		$removedHeaders = $this->removeKeys($browserRequestHeaders, [
+		// "Accept-Encoding", // Removed because it gave me issues! I don't know why yet, i assume a php gzip misconfiguration//Throw away the browser's Accept-Encoding header if any and let cURL make the request using gzip if possible.
 		"Content-Length", "permissions-policy", "strict-transport-security", "report-to", "Host", "x-content-type-options", "cross-origin-opener-policy-report-only", "content-security-policy", "x-frame-options", "x-robots-tag", "x-xss-protection", "X-Frame-Options", //Added but not necessary it seems
 		"Origin", ]);
 
@@ -223,7 +263,7 @@ class Proxy {
 		//If an `origin` header is present in the request, rewrite it to point to the correct origin.
 		if (in_array("origin", $removedHeaders)) {
 			$urlParts = parse_url($url);
-			$port = array_key_exists("port", $urlParts) == null ? "" : $urlParts["port"]; // Modified to remove a PHP Warning code
+			$port = @array_key_exists("port", $urlParts) == null ? "" : $urlParts["port"]; // Modified to remove a PHP Warning code
 			$curlRequestHeaders[] = "Origin: " . $urlParts["scheme"] . "://" . $urlParts["host"] . (empty($port) ? "" : ":" . $port);
 		}
 		curl_setopt($ch, CURLOPT_HTTPHEADER, $curlRequestHeaders);
@@ -231,19 +271,24 @@ class Proxy {
 		//Proxy any received GET/POST/PUT data.
 		switch ($_SERVER["REQUEST_METHOD"]) {
 			case "POST":
-				curl_setopt($ch, CURLOPT_POST, true);
-				//For some reason, $HTTP_RAW_POST_DATA isn't working as documented at
-				//http://php.net/manual/en/reserved.variables.httprawpostdata.php
-				//but the php://input method works. This is likely to be flaky
-				//across different server environments.
-				//More info here: http://stackoverflow.com/questions/8899239/http-raw-post-data-not-being-populated-after-upgrade-to-php-5-3
-				//If the ProxyForm field appears in the POST data, remove it so the destination server doesn't receive it.
 				$postData = [];
 				parse_str(file_get_contents("php://input") , $postData);
-				if (isset($postData["ProxyForm"])) {
-					unset($postData["ProxyForm"]);
+				//Captcha related issue fixed!
+				if (isset($postData["phrase"])) {
+					$_SERVER["REQUEST_METHOD"] = "GET";
+				} else {
+					curl_setopt($ch, CURLOPT_POST, true);
+					//For some reason, $HTTP_RAW_POST_DATA isn't working as documented at
+					//http://php.net/manual/en/reserved.variables.httprawpostdata.php
+					//but the php://input method works. This is likely to be flaky
+					//across different server environments.
+					//More info here: http://stackoverflow.com/questions/8899239/http-raw-post-data-not-being-populated-after-upgrade-to-php-5-3
+					//If the ProxyForm field appears in the POST data, remove it so the destination server doesn't receive it.
+					if (isset($postData["ProxyForm"])) {
+						unset($postData["ProxyForm"]);
+					}
+					curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postData));
 				}
-				curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postData));
 			break;
 			case "PUT":
 				curl_setopt($ch, CURLOPT_PUT, true);
@@ -309,26 +354,24 @@ class Proxy {
 
 	//Proxify contents of url() references in blocks of CSS text.
 	public function proxifyCSS($css, $baseURL) {
-		//Add a "url()" wrapper to any CSS @import rules that only specify a URL without the wrapper,
-		//so that they're proxified when searching for "url()" wrappers below.
+		// Add a "url()" wrapper to any CSS @import rules that only specify a URL without the wrapper,
+		// so that they're proxified when searching for "url()" wrappers below.
 		$sourceLines = explode("\n", $css);
 		$normalizedLines = [];
 		foreach ($sourceLines as $line) {
-			if (preg_match("/@import\s+url/i", $line)) {
+			if (preg_match("/@import\s+url/i", $line) || preg_match("/@font-face/i", $line)) {
 				$normalizedLines[] = $line;
-			}
-			else {
+			} else {
 				$normalizedLines[] = preg_replace_callback("/(@import\s+)([^;\s]+)([\s;])/i", function ($matches) use ($baseURL) {
 					return $matches[1] . "url(" . $matches[2] . ")" . $matches[3];
-				}
-				, $line);
+				}, $line);
 			}
 		}
 		$normalizedCSS = implode("\n", $normalizedLines);
 		return preg_replace_callback("/url\((.*?)\)/i", function ($matches) use ($baseURL) {
 			$url = $matches[1];
-			//Remove any surrounding single or double quotes from the URL so it can be passed to rel2abs - the quotes are optional in CSS
-			//Assume that if there is a leading quote then there should be a trailing quote, so just use trim() to remove them
+			// Remove any surrounding single or double quotes from the URL so it can be passed to rel2abs - the quotes are optional in CSS
+			// Assume that if there is a leading quote then there should be a trailing quote, so just use trim() to remove them
 			if (strpos($url, "'") === 0) {
 				$url = trim($url, "'");
 			}
@@ -337,10 +380,9 @@ class Proxy {
 			}
 			if (stripos($url, "data:") === 0) {
 				return "url(" . $url . ")";
-			} //The URL isn't an HTTP URL but is actual binary data. Don't proxify it.
+			} // The URL isn't an HTTP URL but is actual binary data. Don't proxify it.
 			return "url(" . PROXY_PREFIX . $this->rel2abs($url, $baseURL) . ")";
-		}
-		, $normalizedCSS);
+		}, $normalizedCSS);
 	}
 	
 	//Added to prevent empty responses and remove php warning codes
@@ -363,8 +405,6 @@ class Proxy {
 			} else {
 				$components = array_map("trim", str_split($source,$sauce));//Split by last space and trim
 			}
-			
-			//UPDATED TO POTENTIALLY FIX  Undefined array key 0
 			$components[0] = PROXY_PREFIX . $this->rel2abs(ltrim(array_key_exists(0, $components) ? $components[0] : '', "/") , $baseURL); //First component of the split source string should be an image URL; proxify it
 			$result = [];
 			foreach ($components as $item) {
@@ -382,10 +422,21 @@ class Proxy {
 	}
 }
 $proxy = new Proxy();
-$html = "<html><head><title>PocketProxy</title></head><body><h1>Welcome to PocketProxy!</h1>
-PocketProxy can be directly invoked like this: <a href=\"" . PROXY_PREFIX . $proxy->landingExampleURL . "\">" . PROXY_PREFIX . $proxy->landingExampleURL . "</a><br /><br />Or, you can simply enter a URL below:<br /><br />
-<form onsubmit=\"window.location.href='" . PROXY_PREFIX . "' + document.getElementById('site').value; return false;\">
-<input id='site' type='text' size='50' placeholder='" . $proxy->landingExampleURL . "'><input type=\"submit\" value=\"Proxy It!\" /></form></body></html>";
+$html = "
+<html>
+
+<head>
+    <title>PocketProxy</title>
+</head>
+
+<body>
+    <h1>Welcome to PocketProxy!</h1>
+    PocketProxy can be directly invoked like this: <a href=\"" . PROXY_PREFIX . $proxy->landingExampleURL . "\">" . PROXY_PREFIX . $proxy->landingExampleURL . "</a><br /><br />Or, you can simply enter a URL below:<br /><br />
+    <form onsubmit=\"window.location.href='" . PROXY_PREFIX . "' + document.getElementById('site').value; return false;\">
+        <input id='site' type='text' size='50' placeholder='" . $proxy->landingExampleURL . "'><input type=\"submit\" value=\"Proxy It!\" /></form>
+</body>
+</html>
+";
 ob_start("ob_gzhandler");
 
 if (!function_exists("getallheaders")) {
@@ -414,10 +465,12 @@ else {
 	if (isset($queryParams["ProxyForm"])) {
 		$formAction = $queryParams["ProxyForm"];
 		unset($queryParams["ProxyForm"]);
+		
 		$url = $formAction . "?" . http_build_query($queryParams);
 	}
 	else {
-		$url = substr($_SERVER["REQUEST_URI"], strlen($_SERVER["SCRIPT_NAME"]) + 1);
+		$url = substr($_SERVER["REQUEST_URI"], strlen($_SERVER["SCRIPT_NAME"]) + 1); // this used to be a issue
+		
 	}
 }
 if (empty($url)) {
@@ -435,62 +488,107 @@ elseif (strpos($url, ":/") !== strpos($url, "://")) {
 	$url = substr_replace($url, "://", $pos, strlen(":/"));
 }
 
-//Added for captcha functionality
-$variable1 = array_key_exists("host", parse_url($url)) == null ? "" : $proxy->get_domain(parse_url($url) ["host"]);
+// Added for captcha functionality
+$variable1 = isset(parse_url($url)["host"]) ? $proxy->get_domain(parse_url($url)["host"]) : "";
+$userAgent = $_SERVER['HTTP_USER_AGENT'];
+$matchesCaptchaUA = false;
+foreach ($proxy->captchaua as $uaString) {
+    if (strpos($userAgent, $uaString) !== false) {
+        $matchesCaptchaUA = true;
+        break;
+    }
+}
+echo "<!-- $variable1 -->"; 
+
+// Set session configuration
+ini_set('session.cookie_secure', '1'); // Enforce secure cookie handling over HTTPS
+ini_set('session.cookie_httponly', '1'); // Prevent client-side script access to cookies
+
+// Start session
 session_start();
-if (in_array($variable1, $proxy->captchasitesz)) {
+
+if (in_array($variable1, $proxy->captchasitesz) || $matchesCaptchaUA) {
+	if (!extension_loaded("gd")) {
+				die("PocketProxy requires PHP's \"" . "gd" . "\" extension for Captcha functionality. Please install/enable it on your server and try again.");
+	}
+    
 	$variable2 = false;
-	$variable3 = false;
-	if (isset($_SESSION["phrase"])) {
-			if(PhraseBuilder::comparePhrases($_SESSION["phrase"], $_POST["phrase"])){
-				$variable2 = true;
-				//if (!empty($_SESSION['CREATED'])) {//Originally added to remove a php warning code, but ruined functionality
-				if (!isset($_SESSION["CREATED"])) {
-					$_SESSION["CREATED"] = time();
-				}
-				else if (time() - $_SESSION['CREATED'] > 1800) {
-					// session started more than 30 minutes ago
-					session_regenerate_id(true);    // change session ID for the current session and invalidate old session ID
-					$_SESSION['CREATED'] = time();  // update creation time
-				}
-			}
-			else{
-				$ehrx = "<h1>Captcha is not valid!</h1>";
-			}
+    $variable3 = false;
+
+    if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION["phrase"])) {
+        
+		if(!isset($_POST["phrase"]))
+		{
+			$ehrx = "<h1>Captcha is not valid!</h1>";
 		}
-	}
-	// The phrase can't be used twice
-	unset($_SESSION["phrase"]);
-	if (array_key_exists("CREATED", $_SESSION)) {
-		if (time() - $_SESSION["CREATED"] > 1800) {
-			$variable3 = true;
-		}
-	}
-	else {
-		$variable3 = true;
-	}
-	if (!$variable2 && $variable3) { ?>
-		<h1>The website you're trying to visit is on the Suspicious Website List!</h1>
-	<form method="post">Please Copy the Captcha (30 minute Sessions)
+		else if (PhraseBuilder::comparePhrases($_SESSION["phrase"], $_POST["phrase"])) { //PHP Warning:  Undefined array key "phrase" 
+            $variable2 = true;
+
+            if (!isset($_SESSION["CREATED"])) {
+                $_SESSION["CREATED"] = time();
+            } elseif (time() - $_SESSION["CREATED"] > 1800) {
+                session_regenerate_id(true);
+                $_SESSION["CREATED"] = time();
+            }
+        } else {
+            $ehrx = "<h1>Captcha is not valid!</h1>";
+        }
+    }
+
+    unset($_SESSION["phrase"]);
+
+    if (isset($_SESSION["CREATED"])) {
+        if (time() - $_SESSION["CREATED"] > 1800) {
+            $variable3 = true;
+        }
+    } else {
+        $variable3 = true;
+    }
+
+    if (!$variable2 && $variable3) {
+        // Set session expiration and implement session timeout
+        $session_timeout = 1800; // 30 minutes (in seconds)
+        if (isset($_SESSION['LAST_ACTIVITY']) && time() - $_SESSION['LAST_ACTIVITY'] > $session_timeout) {
+            session_unset(); // Unset all session variables
+            session_destroy(); // Destroy the session
+            // Redirect the user to the login page or display an appropriate message
+            die("<h1>Session expired. Please refresh the page and try again.</h1>");
+        } else {
+            $_SESSION['LAST_ACTIVITY'] = time(); // Update the last activity timestamp
+        }
+
+        ?>
+        <h1>The website you're trying to visit is on the Suspicious Website List!</h1>
+        <form method="post">
+            Please Copy the Captcha (30 minute Sessions)
+            <?php
+            $phraseBuilder = new PhraseBuilder(4);
+            $captcha = new CaptchaBuilder(null, $phraseBuilder);
+            $captcha->build();
+            $_SESSION["phrase"] = $captcha->getPhrase();
+            ?>
+            <img src="<?php echo $captcha->inline(); ?>"/><br/>
+            <?php
+            if ($proxy->cce) {
+                if (isset($ehrx)) {
+                    echo $ehrx;
+                }
+                echo "Cheat Code: " . $captcha->getPhrase();
+            }
+            ?>
+            <input type="text" name="phrase"/>
+            <input type="hidden" name="csrf_token" value="<?php echo bin2hex(random_bytes(32)); ?>">
+            <input type="submit"/>
+        </form>
         <?php
-		$phraseBuilder = new PhraseBuilder(4);
-		$captcha = new CaptchaBuilder(null, $phraseBuilder);
-		$captcha->build();
-		$_SESSION["phrase"] = $captcha->getPhrase();
-?>
-         <img src="<?php echo $captcha->inline(); ?>"/><br/>
-        <?php if ($proxy->cce) {
-			if(isset($ehrx)){echo $ehrx;}
-			echo "Cheat Code: " . $captcha->getPhrase();
-		} ?>
-        <input type="text" name="phrase" />
-        <input type="submit" />
-    </form>
-		<?php die();
-	}
+        die();
+    }
+}
 
 $scheme = parse_url($url, PHP_URL_SCHEME);
+
 if (empty($scheme)) {
+	/*To-do! CHECK! if http or https exists!*/
 	if (strpos($url, "//") === 0) {
 		//Assume that any supplied URLs starting with // are HTTP URLs.
 		$url = "http:" . $url;
@@ -503,13 +601,16 @@ if (empty($scheme)) {
 elseif (!preg_match("/^https?$/i", $scheme)) {
 	die('Error: Detected a "' . $scheme . '" URL. PocketProxy exclusively supports http[s] URLs.');
 }
+//could cause captcha bypass issues
 $url = str_replace(array('http://?','https://?'), '', $url);//This is going to fix a lot of weirds but potentially not all!
 $url = str_replace(array('?http://','?https://'), array('http://','https://'), $url);
+
 
 if (!$proxy->isValidURL($url)) {
 	$proxy->logcbl($url);
 	die("Error: The requested URL was disallowed by the server administrator.");
 }
+//Error where google links are ?https:/ and not ://
 
 $response = $proxy->makeRequest($url);
 $rawResponseHeaders = $response["headers"];
@@ -580,10 +681,19 @@ if (stripos($contentType, "text/html") !== false) {
 	if ($detectedEncoding) {
 		$responseBody = htmlspecialchars_decode($responseBody);
 	}
+	//added, make $source not empty, to remove php error codes
 	if (empty($responseBody)) {
 		$responseBody = " ";
 	}
-
+	/*
+	
+	I don't know if I ever fixed these or not! I think I just added "@" to supress it!
+	
+	//HP message: PHP Warning:  DOMDocument::loadHTML(): Tag nav invalid in Entity
+	//PHP message: PHP Warning:  DOMDocument::loadHTML(): Tag footer invalid in Entity, line: 349 in /var/www/html/pocketproxy.php on line 663" while reading response header from upstream, 
+	
+	*/
+	
 	//Parse the DOM.
 	$doc = new DomDocument();
 	@$doc->loadHTML($responseBody);
@@ -617,6 +727,8 @@ if (stripos($contentType, "text/html") !== false) {
 	}
 	//Profixy <style> tags.
 	foreach ($xpath->query("//style") as $style) {
+		//BUG: main(): unterminated entity reference skey=c491285d6722e4fa&amp;v=v12) format('woff')}
+		// &amp; < should probably be & , isssuuuuues
 		$style->nodeValue = $proxy->proxifyCSS($style->nodeValue, $url);
 	}
 	//Proxify tags with a "style" attribute.
@@ -667,105 +779,369 @@ if (stripos($contentType, "text/html") !== false) {
 	//what's coming back is most likely not actually HTML.
 	//TODO: Do this check before attempting to do any sort of DOM parsing?
 	if ($prependElem != null) {
-		$scriptElem = $doc->createElement("script", '(function() {
+		$proxyPrefix = PROXY_PREFIX;
+		$scriptElem = $doc->createElement("script", <<<EOF
+(function() {
+    // Initialize a proxy prefix variable to modify URLs for routing through a proxy.
+    var proxyPrefix = "{$proxyPrefix}";
 
-        if (window.XMLHttpRequest) {
+    // Extract the base URL from the current location to use in URL modifications.
+    var currentURL = window.location.href;
+    var params = currentURL.split("{$_SERVER["SCRIPT_NAME"]}?")[1];
+    var baseURL = decodeURIComponent(params || "");
 
-          function parseURI(url) {
-            var m = String(url).replace(/^\s+|\s+$/g, "").match(/^([^:\/?#]+:)?(\/\/(?:[^:@]*(?::[^:@]*)?@)?(([^:\/?#]*)(?::(\d*))?))?([^?#]*)(\?[^#]*)?(#[\s\S]*)?/);
-            // authority = "//" + user + ":" + pass "@" + hostname + ":" port
-            return (m ? {
-              href : m[0] || "",
-              protocol : m[1] || "",
-              authority: m[2] || "",
-              host : m[3] || "",
-              hostname : m[4] || "",
-              port : m[5] || "",
-              pathname : m[6] || "",
-              search : m[7] || "",
-              hash : m[8] || ""
-            } : null);
-          }
+    try {
+        // Overriding the default createElement method to intercept element creation.
+        // This modification allows us to alter URL attributes for new elements.
+        var originalCreateElement = document.createElement;
+        document.createElement = function(tagName) {
+            var element = originalCreateElement.call(document, tagName);
 
-          function rel2abs(base, href) { // RFC 3986
-
-            function removeDotSegments(input) {
-              var output = [];
-              input.replace(/^(\.\.?(\/|$))+/, "")
-                .replace(/\/(\.(\/|$))+/g, "/")
-                .replace(/\/\.\.$/, "/../")
-                .replace(/\/?[^\/]*/g, function (p) {
-                  if (p === "/..") {
-                    output.pop();
-                  } else {
-                    output.push(p);
-                  }
+            // Function to modify the URL attribute of an element.
+            function modifyUrlAttribute(attributeName) {
+                Object.defineProperty(element, attributeName, {
+                    set: function(url) {
+                        this.setAttribute(attributeName, modifyUrl(url));
+                    }
                 });
-              return output.join("").replace(/^\//, input.charAt(0) === "/" ? "/" : "");
             }
 
-            href = parseURI(href || "");
-            base = parseURI(base || "");
-
-            return !href || !base ? null : (href.protocol || base.protocol) +
-            (href.protocol || href.authority ? href.authority : base.authority) +
-            removeDotSegments(href.protocol || href.authority || href.pathname.charAt(0) === "/" ? href.pathname : (href.pathname ? ((base.authority && !base.pathname ? "/" : "") + base.pathname.slice(0, base.pathname.lastIndexOf("/") + 1) + href.pathname) : base.pathname)) +
-            (href.protocol || href.authority || href.pathname ? href.search : (href.search || base.search)) +
-            href.hash;
-
-          }
-
-          var proxied = window.XMLHttpRequest.prototype.open;
-          window.XMLHttpRequest.prototype.open = function() {
-              if (arguments[1] !== null && arguments[1] !== undefined) {
-                var url = arguments[1];
-                url = rel2abs("' . $url . '", url);
-                if (url.indexOf("' . PROXY_PREFIX . '") == -1) {
-                  url = "' . PROXY_PREFIX . '" + url;
+            // List of attributes that potentially contain URLs to be modified.
+            var potentialUrlAttributes = ["src", "rel", "href", "data-src", "data-href", "action", "srcset", "poster", "hreflang", "cite", "data-url", "data-link", "data-file", "data-image", "data-video", "data-audio", "data-source"];
+            potentialUrlAttributes.forEach(function(attributeName) {
+                if (element[attributeName] !== undefined) {
+                    modifyUrlAttribute(attributeName);
                 }
-                arguments[1] = url;
-              }
-              return proxied.apply(this, [].slice.call(arguments));
-          };
+            });
 
+            return element;
+        };
+    } catch (error) {
+        console.error("Error in modifying document.createElement:", error);
+    }
+
+    // Ensuring compatibility with DOMParser and Object.defineProperty.
+    if (typeof DOMParser === "undefined") {
+        console.error("DOMParser is not supported in this browser.");
+    }
+    if (typeof Object.defineProperty === "undefined") {
+        console.error("Object.defineProperty is not supported in this browser.");
+    } else {
+        // Overriding innerHTML and outerHTML to modify inline scripts and URLs.
+        try {
+            Object.defineProperty(Element.prototype, "innerHTML", {
+                set: function(htmlString) {
+                    try {
+                        this.appendChild(document.createRange().createContextualFragment(modifyInlineScripts(htmlString)));
+                    } catch (error) {
+                        console.error("Error in innerHTML setter:", error);
+                        this.innerHTML = htmlString; // Revert to the original HTML on error.
+                    }
+                }
+            });
+        } catch (error) {
+            console.error("Error in defining innerHTML:", error);
         }
 
-      })();');
-		$scriptElem->setAttribute("type", "text/javascript");
+        try {
+            Object.defineProperty(Element.prototype, "outerHTML", {
+                set: function(htmlString) {
+                    try {
+                        this.replaceWith(...document.createRange().createContextualFragment(modifyInlineScripts(htmlString)).childNodes);
+                    } catch (error) {
+                        console.error("Error in outerHTML setter:", error);
+                        this.outerHTML = htmlString; // Revert to the original HTML on error.
+                    }
+                }
+            });
+        } catch (error) {
+            console.error("Error in defining outerHTML:", error);
+        }
+    }
+
+    // Modifying XMLHttpRequest and fetch to route requests through the proxy.
+    try {
+        if (window.XMLHttpRequest) {
+            var originalOpen = XMLHttpRequest.prototype.open;
+            window.XMLHttpRequest.prototype.open = function() {
+                if (arguments[1] !== null && arguments[1] !== undefined) {
+                    var url = arguments[1];
+                    url = modifyUrl(url);
+                    arguments[1] = url;
+                }
+                return originalOpen.apply(this, [].slice.call(arguments));
+            };
+        }
+    } catch (error) {
+        console.error("Error in modifying XMLHttpRequest:", error);
+    }
+
+    try {
+        if (window.fetch) {
+            var originalFetch = window.fetch;
+            window.fetch = function(url, init) {
+                arguments[0] = modifyUrl(url);
+                return originalFetch.apply(this, arguments);
+            };
+        }
+    } catch (error) {
+        console.error("Error in modifying fetch:", error);
+    }
+
+    // Additional modifications to handle WebSocket, ServiceWorker, and form submissions.
+    try {
+        // WebSocket modification to route connections through the proxy.
+        var originalWebSocket = window.WebSocket;
+        window.WebSocket = function(url, protocols) {
+            var modifiedUrl = modifyUrl(url);
+            return new originalWebSocket(modifiedUrl, protocols);
+        };
+
+        // Disabling ServiceWorker registration to prevent caching issues with the proxy.
+        if (navigator.serviceWorker) {
+            navigator.serviceWorker.register = function() {
+                console.warn("Service Worker registration is disabled.");
+                return Promise.reject(new Error("Service Worker registration is disabled."));
+            };
+        }
+
+        // Ensuring that form submissions are routed through the proxy.
+        document.addEventListener("submit", function(event) {
+            var form = event.target;
+            if (form.tagName === "FORM") {
+                form.action = modifyUrl(form.action);
+            }
+        });
+
+        // Modification to the window.open method to handle URL routing.
+        var originalWindowOpen = window.open;
+        window.open = function(url) {
+            return originalWindowOpen.call(window, modifyUrl(url));
+        };
+
+        // Disabling Worker creation to prevent uncontrolled network requests.
+        var originalWorker = window.Worker;
+        window.Worker = function() {
+            throw new Error("Web Workers are disabled on this page.");
+        };
+    } catch (error) {
+        console.error("Error in WebSocket/ServiceWorker/Form/WindowOpen/Worker modification:", error);
+    }
+
+    // History manipulation to ensure navigation is consistent with proxy routing.
+    try {
+        (function(history) {
+            var pushState = history.pushState;
+            var replaceState = history.replaceState;
+
+            history.pushState = function(state, title, url) {
+                var modifiedUrl = modifyUrl(url);
+                if (typeof history.onpushstate == "function") {
+                    history.onpushstate({state: state, title: title, url: modifiedUrl});
+                }
+                return pushState.apply(history, [state, title, modifiedUrl]);
+            };
+
+            history.replaceState = function(state, title, url) {
+                var modifiedUrl = modifyUrl(url);
+                if (typeof history.onreplacestate == "function") {
+                    history.onreplacestate({state: state, title: title, url: modifiedUrl});
+                }
+                return replaceState.apply(history, [state, title, modifiedUrl]);
+            };
+
+            window.addEventListener("popstate", function(event) {
+                // Handle back/forward button navigation.
+                var modifiedUrl = modifyUrl(event.state ? event.state.url : window.location.href);
+                if (window.location.href !== modifiedUrl) {
+                    window.location.replace(modifiedUrl);
+                }
+            });
+        })(window.history);
+    } catch (error) {
+        console.error("Error in history manipulation:", error);
+    }
+
+    // Modifying document.write and writeln to search for and modify URLs in content.
+    try {
+        var originalDocumentWrite = document.write;
+        var originalDocumentWriteln = document.writeln;
+
+        function modifyUrlInContent(content) {
+            // Regular expression pattern to match URLs in content.
+            var urlPattern = /((?:https?|ftp):\/\/[^\s/$.?#].[^\s]*)/gi;
+
+            // Replace URLs in the content with modified URLs.
+            var modifiedContent = content.replace(urlPattern, function(match, quote, url) {
+                // Check if the URL already contains the proxy prefix.
+                if (!url.includes(proxyPrefix)) {
+                    // Modify the URL by adding the proxy prefix.
+                    url = proxyPrefix + url;
+                    return quote ? quote + url : url;
+                }
+                return match; // Return unchanged if already modified.
+            });
+
+            return modifiedContent;
+        }
+
+        function modifiedWrite(content) {
+            // Modify URLs in document.write content.
+            var modifiedContent = modifyUrlInContent(content);
+            originalDocumentWrite.call(document, modifiedContent);
+        }
+
+        function modifiedWriteln(content) {
+            // Modify URLs in document.writeln content.
+            var modifiedContent = modifyUrlInContent(content);
+            originalDocumentWriteln.call(document, modifiedContent);
+        }
+
+        document.write = modifiedWrite;
+        document.writeln = modifiedWriteln;
+    } catch (error) {
+        console.error("Error in modifying document.write and writeln:", error);
+    }
+
+    // Helper functions for URL parsing and modifications.
+    function parseURI(url) {
+        // Parses a URL and returns its components.
+        try {
+            var m = String(url).replace(/^\s+|\s+$/g, "").match(/^([^:\/?#]+:)?(\/\/(?:[^:@]*(?::[^:@]*)?@)?(([^:\/?#]*)(?::(\d*))?))?([^?#]*)(\?[^#]*)?(#[\s\S]*)?/);
+            return (m ? {
+                href: m[0] || "",
+                protocol: m[1] || "",
+                authority: m[2] || "",
+                host: m[3] || "",
+                hostname: m[4] || "",
+                port: m[5] || "",
+                pathname: m[6] || "",
+                search: m[7] || "",
+                hash: m[8] || ""
+            } : null);
+        } catch (error) {
+            console.error("Error in parseURI:", error);
+            return null;
+        }
+    }
+
+	function rel2abs(base, href) { // RFC 3986
+        // Converts a relative URL to an absolute URL based on a base URL. 
+		try {
+			function removeDotSegments(input) {
+				var output = [];
+				input.replace(/^(\.\.?(\/|$))+/, "")
+					.replace(/\/(\.(\/|$))+/g, "/")
+					.replace(/\/\.\.$/, "/../")
+					.replace(/\/?[^\/]*/g, function(p) {
+						if (p === "/..") {
+							output.pop();
+						} else {
+							output.push(p);
+						}
+					});
+				return output.join("").replace(/^\//, input.charAt(0) === "/" ? "/" : "");
+			}
+
+			href = parseURI(href || "");
+			base = parseURI(base || "");
+
+            // Combines the base URL and relative URL into an absolute URL.
+            return !href || !base ? null : (href.protocol || base.protocol) +
+                (href.protocol || href.authority ? href.authority : base.authority) +
+                removeDotSegments(href.protocol || href.authority || href.pathname.charAt(0) === "/" ? href.pathname : (href.pathname ? ((base.authority && !base.pathname ? "/" : "") + base.pathname.slice(0, base.pathname.lastIndexOf("/") + 1) + href.pathname) : base.pathname)) +
+                (href.protocol || href.authority || href.pathname ? href.search : (href.search || base.search)) +
+                href.hash;
+        } catch (error) {
+            console.error("Error in rel2abs:", error);
+            return null;
+        }
+    }
+	
+    function modifyInlineScripts(htmlString) {
+        // Parses the HTML string and modifies script src attributes.
+        try {
+            var parser = new DOMParser();
+            var doc = parser.parseFromString(htmlString, "text/html");
+            var scripts = doc.getElementsByTagName("script");
+
+            // Iterates over script tags to modify their src attributes.
+            for (var i = 0; i < scripts.length; i++) {
+                var script = scripts[i];
+                if (script.src) {
+                    script.src = modifyUrl(script.src);
+                }
+            }
+
+            return new XMLSerializer().serializeToString(doc);
+        } catch (error) {
+            console.error("Error in modifyInlineScripts:", error);
+            return htmlString; // Return the original HTML string on error.
+        }
+    }
+
+    function modifyUrl(url) {
+        // Modifies the given URL to include the proxy prefix.
+        try {
+            if (typeof url === 'string') {
+                if (!url.includes(proxyPrefix)) {
+                    var urlObj = parseURI(url);
+                    if (urlObj) {
+                        url = rel2abs(window.location.href, urlObj.href);
+                        if (url.indexOf(proxyPrefix) === -1) {
+                            url = proxyPrefix + url;
+                        }
+                    }
+                }
+            } else {
+                console.error(`Error in modifyUrl: URL is not a string. Received type: \${typeof url}`);
+                if (typeof url === 'object') {
+                    console.log(`Object JSON: \${JSON.stringify(url)}`);
+                }
+            }
+            return url;
+        } catch (error) {
+            console.error("Error in modifyUrl:", error);
+            return url; // Return the original URL on error.
+        }
+    }
+	
+})();
+
+EOF
+);
 
 		$prependElem->insertBefore($scriptElem, $prependElem->firstChild);
 	}
-	
+
 	//I noticed Google results were ?url=https:/ and not ?url=https:// causing them to not function
 	foreach ($doc->getElementsByTagName('a') as $link) {
 	   $link->setAttribute('href', preg_replace(array('/https\:\/(?!\/)/', '/http\:\/(?!\/)/'), array('https://', 'http://'), $link->getAttribute('href')));
 	}
-
+	
 	echo "<!-- Proxified page constructed by PocketProxy -->\n" . $doc->saveHTML($doc->documentElement);//Should fix my UTF-8 ecoding error https://stackoverflow.com/questions/8218230/php-domdocument-loadhtml-not-encoding-utf-8-correctly
 }
-//Trying to figure out why PHP exhausted 6383730688 bytes , trying to allocate more 2093393984 bytes.. Memory leak or big downloads, not sure, but trying to reduce processing in the meantime
-#elseif (stripos($contentType, "text/css") !== false) {
+elseif (stripos($contentType, "text/css") !== false) {
 	//This is CSS, so proxify url() references.
-#	echo $proxy->proxifyCSS($responseBody, $url);
-#	header("Content-Type: text/css");
-#}
-#elseif (stripos($contentType, "text/javascript") !== false) {
-	//This is CSS, so proxify url() references.
-#	header("Content-Length: " . strlen($responseBody) , true);
-#	header("Content-Type: text/javascript");
-#	echo $responseBody;
-#}
+	//Trying to figure out why "PHP exhausted 6383730688 bytes , trying to allocate more 2093393984 bytes" ... 
+	//Memory leak or big downloads, not sure, but it's riskier for the end user to have this disabled. 
+	//Will have to fix very soon! Forgot it was an issue!
+	echo $proxy->proxifyCSS($responseBody, $url);
+
+	header("Content-Type: text/css");
+}
 elseif (stripos($contentType, "multipart/form-data") !== false) { 
 //The problem here is that the boundary, something like
 //boundary=----WebKitFormBoundaryyEmKNDsBKjB7QEqu
 //never makes it into the Content-Type: header
-//So remove the content-type and the browser will fill in the rest
-	header("Content-Length: " . strlen($responseBody) , true);
+//So remove the content-type/length and the browser will fill in the rest 
+	//header("Content-Length: " . strlen($responseBody) , true);
 	echo $responseBody;
 }
 else {
 	//This isn't a web page or CSS, so serve unmodified through the proxy with the correct headers (images, JavaScript, etc.)
-	header("Content-Length: " . strlen($responseBody) , true);
+	//Will add more processing in the future, potentially
+	//header("Content-Length: " . strlen($responseBody) , true);
 	header("Content-Type: " . $contentType); //not having this was causing a bunch of issues
 	header('Content-Disposition: filename="'.basename(parse_url($url, PHP_URL_PATH).'"'));//Keep same filename when downloading from server, doesn't always work but is better
 	echo $responseBody;
