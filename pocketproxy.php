@@ -20,14 +20,7 @@ class Proxy {
 
 		//To make a user enter a captcha for specified website(s) "archive.org"
 		$this->captchasitesz = 
-		[
-		"arbforum.com","xbox.com","phncdn.com","tktube.com","syosetu.com","youtube.com","wipo.int","icann.org","xxx18hot.com", 
-		"internetchicks.com", "177picyy.com", "content.leenks.com", "thehackerspro.com", "camghosts.com", "teen-xxx.name", 
-		"xxx18hot.com", "scatshop.com", "freshscat.com", "barnorama.com", "thisvid.com", "ww6.soap2day.day", "aporntv.com", "japeal.com", 
-		"pic.alohaporn.me", "tufos.com.br", "faceplay.me", "mage.space", "empflix.com", "177picyy.com", "hentaipulse.com", 
-		"hl.proxys5.net", "en.luxuretv.com", "no.plus90.com", "gelbooru.com", "duckdns.org", "erofus.com", "mb13.men", "steamcommunity.com", 
-		"itest.5ch.net", "5ch.net", "steamgifts.com", "archive.ph", "archive.md", "archive.is", "archive.li", "archive.vn", "archive.org", "archive.com",
-		"epochtimes.com","rule34.xxx","jerkmate.com","realsrv.com",];
+		["archive.ph", "archive.md", "archive.is", "archive.li", "archive.vn", "archive.org", "archive.com"];
 		
 		$this->captchaua = ["Amazonbot/0.1", "Googlebot/2.1", "Bingbot/2.0", "Slackbot/1.0", "Facebookbot/2.1", "Twitterbot/2.0", 
 		"LinkedInBot/2.0", "Pinterest/0.1", "Tumblr/1.0", "Applebot/1.0", "WhatsApp/2.0", "Skypebot/1.0", "Snapchat/1.0", "Discordbot/2.0", 
