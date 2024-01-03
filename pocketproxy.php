@@ -1131,6 +1131,13 @@ elseif (stripos($contentType, "multipart/form-data") !== false) {
 	//header("Content-Length: " . strlen($responseBody) , true);
 	echo $responseBody;
 }
+elseif (stripos($contentType, "video/mp4") !== false) {
+	ob_end_clean();
+    // This is an MP4 file.
+    // Handle it accordingly, e.g., output or process the MP4 content.
+    header("Content-Type: video/mp4");
+    echo $responseBody;
+}
 else {
 	//This isn't a web page or CSS, so serve unmodified through the proxy with the correct headers (images, JavaScript, etc.)
 	//Will add more processing in the future, potentially
