@@ -419,14 +419,14 @@ $html = "
 <html>
 
 <head>
-    <title>PocketProxy</title>
+	<title>PocketProxy</title>
 </head>
 
 <body>
-    <h1>Welcome to PocketProxy!</h1>
-    PocketProxy can be directly invoked like this: <a href=\"" . PROXY_PREFIX . $proxy->landingExampleURL . "\">" . PROXY_PREFIX . $proxy->landingExampleURL . "</a><br /><br />Or, you can simply enter a URL below:<br /><br />
-    <form onsubmit=\"window.location.href='" . PROXY_PREFIX . "' + document.getElementById('site').value; return false;\">
-        <input id='site' type='text' size='50' placeholder='" . $proxy->landingExampleURL . "'><input type=\"submit\" value=\"Proxy It!\" /></form>
+	<h1>Welcome to PocketProxy!</h1>
+	PocketProxy can be directly invoked like this: <a href=\"" . PROXY_PREFIX . $proxy->landingExampleURL . "\">" . PROXY_PREFIX . $proxy->landingExampleURL . "</a><br /><br />Or, you can simply enter a URL below:<br /><br />
+	<form onsubmit=\"window.location.href='" . PROXY_PREFIX . "' + document.getElementById('site').value; return false;\">
+		<input id='site' type='text' size='50' placeholder='" . $proxy->landingExampleURL . "'><input type=\"submit\" value=\"Proxy It!\" /></form>
 </body>
 </html>
 ";
@@ -486,10 +486,10 @@ $variable1 = isset(parse_url($url)["host"]) ? $proxy->get_domain(parse_url($url)
 $userAgent = $_SERVER['HTTP_USER_AGENT'];
 $matchesCaptchaUA = false;
 foreach ($proxy->captchaua as $uaString) {
-    if (strpos($userAgent, $uaString) !== false) {
-        $matchesCaptchaUA = true;
-        break;
-    }
+	if (strpos($userAgent, $uaString) !== false) {
+		$matchesCaptchaUA = true;
+		break;
+	}
 }
 echo "<!-- $variable1 -->"; 
 
@@ -504,78 +504,78 @@ if (in_array($variable1, $proxy->captchasitesz) || $matchesCaptchaUA) {
 	if (!extension_loaded("gd")) {
 				die("PocketProxy requires PHP's \"" . "gd" . "\" extension for Captcha functionality. Please install/enable it on your server and try again.");
 	}
-    
+	
 	$variable2 = false;
-    $variable3 = false;
+	$variable3 = false;
 
-    if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION["phrase"])) {
-        
+	if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SESSION["phrase"])) {
+		
 		if(!isset($_POST["phrase"]))
 		{
 			$ehrx = "<h1>Captcha is not valid!</h1>";
 		}
 		else if (PhraseBuilder::comparePhrases($_SESSION["phrase"], $_POST["phrase"])) { //PHP Warning:  Undefined array key "phrase" 
-            $variable2 = true;
+			$variable2 = true;
 
-            if (!isset($_SESSION["CREATED"])) {
-                $_SESSION["CREATED"] = time();
-            } elseif (time() - $_SESSION["CREATED"] > 1800) {
-                session_regenerate_id(true);
-                $_SESSION["CREATED"] = time();
-            }
-        } else {
-            $ehrx = "<h1>Captcha is not valid!</h1>";
-        }
-    }
+			if (!isset($_SESSION["CREATED"])) {
+				$_SESSION["CREATED"] = time();
+			} elseif (time() - $_SESSION["CREATED"] > 1800) {
+				session_regenerate_id(true);
+				$_SESSION["CREATED"] = time();
+			}
+		} else {
+			$ehrx = "<h1>Captcha is not valid!</h1>";
+		}
+	}
 
-    unset($_SESSION["phrase"]);
+	unset($_SESSION["phrase"]);
 
-    if (isset($_SESSION["CREATED"])) {
-        if (time() - $_SESSION["CREATED"] > 1800) {
-            $variable3 = true;
-        }
-    } else {
-        $variable3 = true;
-    }
+	if (isset($_SESSION["CREATED"])) {
+		if (time() - $_SESSION["CREATED"] > 1800) {
+			$variable3 = true;
+		}
+	} else {
+		$variable3 = true;
+	}
 
-    if (!$variable2 && $variable3) {
-        // Set session expiration and implement session timeout
-        $session_timeout = 1800; // 30 minutes (in seconds)
-        if (isset($_SESSION['LAST_ACTIVITY']) && time() - $_SESSION['LAST_ACTIVITY'] > $session_timeout) {
-            session_unset(); // Unset all session variables
-            session_destroy(); // Destroy the session
-            // Redirect the user to the login page or display an appropriate message
-            die("<h1>Session expired. Please refresh the page and try again.</h1>");
-        } else {
-            $_SESSION['LAST_ACTIVITY'] = time(); // Update the last activity timestamp
-        }
+	if (!$variable2 && $variable3) {
+		// Set session expiration and implement session timeout
+		$session_timeout = 1800; // 30 minutes (in seconds)
+		if (isset($_SESSION['LAST_ACTIVITY']) && time() - $_SESSION['LAST_ACTIVITY'] > $session_timeout) {
+			session_unset(); // Unset all session variables
+			session_destroy(); // Destroy the session
+			// Redirect the user to the login page or display an appropriate message
+			die("<h1>Session expired. Please refresh the page and try again.</h1>");
+		} else {
+			$_SESSION['LAST_ACTIVITY'] = time(); // Update the last activity timestamp
+		}
 
-        ?>
-        <h1>The website you're trying to visit is on the Suspicious Website List!</h1>
-        <form method="post">
-            Please Copy the Captcha (30 minute Sessions)
-            <?php
-            $phraseBuilder = new PhraseBuilder(4);
-            $captcha = new CaptchaBuilder(null, $phraseBuilder);
-            $captcha->build();
-            $_SESSION["phrase"] = $captcha->getPhrase();
-            ?>
-            <img src="<?php echo $captcha->inline(); ?>"/><br/>
-            <?php
-            if ($proxy->cce) {
-                if (isset($ehrx)) {
-                    echo $ehrx;
-                }
-                echo "Cheat Code: " . $captcha->getPhrase();
-            }
-            ?>
-            <input type="text" name="phrase"/>
-            <input type="hidden" name="csrf_token" value="<?php echo bin2hex(random_bytes(32)); ?>">
-            <input type="submit"/>
-        </form>
-        <?php
-        die();
-    }
+		?>
+		<h1>The website you're trying to visit is on the Suspicious Website List!</h1>
+		<form method="post">
+			Please Copy the Captcha (30 minute Sessions)
+			<?php
+			$phraseBuilder = new PhraseBuilder(4);
+			$captcha = new CaptchaBuilder(null, $phraseBuilder);
+			$captcha->build();
+			$_SESSION["phrase"] = $captcha->getPhrase();
+			?>
+			<img src="<?php echo $captcha->inline(); ?>"/><br/>
+			<?php
+			if ($proxy->cce) {
+				if (isset($ehrx)) {
+					echo $ehrx;
+				}
+				echo "Cheat Code: " . $captcha->getPhrase();
+			}
+			?>
+			<input type="text" name="phrase"/>
+			<input type="hidden" name="csrf_token" value="<?php echo bin2hex(random_bytes(32)); ?>">
+			<input type="submit"/>
+		</form>
+		<?php
+		die();
+	}
 }
 
 $scheme = parse_url($url, PHP_URL_SCHEME);
@@ -666,6 +666,21 @@ $contentType = "";
 if (isset($responseInfo["content_type"])) {
 	$contentType = $responseInfo["content_type"];
 }
+
+$compressibleMimeTypes = [
+	//'text/css',
+	'text/javascript',
+	'application/javascript',
+	'application/json',
+	'application/xml',
+	'text/xml',
+	'text/plain',
+	'application/xhtml+xml',
+	'text/csv',
+	'application/atom+xml',
+	'image/svg+xml',
+	'application/rss+xml',
+];
 
 //This is presumably a web page, so attempt to proxify the DOM.
 if (stripos($contentType, "text/html") !== false) {
@@ -775,251 +790,251 @@ if (stripos($contentType, "text/html") !== false) {
 		$proxyPrefix = PROXY_PREFIX;
 		$scriptElem = $doc->createElement("script", <<<EOF
 (function() {
-    // Initialize a proxy prefix variable to modify URLs for routing through a proxy.
-    var proxyPrefix = "{$proxyPrefix}";
+	// Initialize a proxy prefix variable to modify URLs for routing through a proxy.
+	var proxyPrefix = "{$proxyPrefix}";
 
-    // Extract the base URL from the current location to use in URL modifications.
-    var currentURL = window.location.href;
-    var params = currentURL.split("{$_SERVER["SCRIPT_NAME"]}?")[1];
-    var baseURL = decodeURIComponent(params || "");
+	// Extract the base URL from the current location to use in URL modifications.
+	var currentURL = window.location.href;
+	var params = currentURL.split("{$_SERVER["SCRIPT_NAME"]}?")[1];
+	var baseURL = decodeURIComponent(params || "");
 
-    try {
-        // Overriding the default createElement method to intercept element creation.
-        // This modification allows us to alter URL attributes for new elements.
-        var originalCreateElement = document.createElement;
-        document.createElement = function(tagName) {
-            var element = originalCreateElement.call(document, tagName);
+	try {
+		// Overriding the default createElement method to intercept element creation.
+		// This modification allows us to alter URL attributes for new elements.
+		var originalCreateElement = document.createElement;
+		document.createElement = function(tagName) {
+			var element = originalCreateElement.call(document, tagName);
 
-            // Function to modify the URL attribute of an element.
-            function modifyUrlAttribute(attributeName) {
-                Object.defineProperty(element, attributeName, {
-                    set: function(url) {
-                        this.setAttribute(attributeName, modifyUrl(url));
-                    }
-                });
-            }
+			// Function to modify the URL attribute of an element.
+			function modifyUrlAttribute(attributeName) {
+				Object.defineProperty(element, attributeName, {
+					set: function(url) {
+						this.setAttribute(attributeName, modifyUrl(url));
+					}
+				});
+			}
 
-            // List of attributes that potentially contain URLs to be modified.
-            var potentialUrlAttributes = ["src", "rel", "href", "data-src", "data-href", "action", "srcset", "poster", "hreflang", "cite", "data-url", "data-link", "data-file", "data-image", "data-video", "data-audio", "data-source"];
-            potentialUrlAttributes.forEach(function(attributeName) {
-                if (element[attributeName] !== undefined) {
-                    modifyUrlAttribute(attributeName);
-                }
-            });
+			// List of attributes that potentially contain URLs to be modified.
+			var potentialUrlAttributes = ["src", "rel", "href", "data-src", "data-href", "action", "srcset", "poster", "hreflang", "cite", "data-url", "data-link", "data-file", "data-image", "data-video", "data-audio", "data-source"];
+			potentialUrlAttributes.forEach(function(attributeName) {
+				if (element[attributeName] !== undefined) {
+					modifyUrlAttribute(attributeName);
+				}
+			});
 
-            return element;
-        };
-    } catch (error) {
-        console.error("Error in modifying document.createElement:", error);
-    }
+			return element;
+		};
+	} catch (error) {
+		console.error("Error in modifying document.createElement:", error);
+	}
 
-    // Ensuring compatibility with DOMParser and Object.defineProperty.
-    if (typeof DOMParser === "undefined") {
-        console.error("DOMParser is not supported in this browser.");
-    }
-    if (typeof Object.defineProperty === "undefined") {
-        console.error("Object.defineProperty is not supported in this browser.");
-    } else {
-        // Overriding innerHTML and outerHTML to modify inline scripts and URLs.
-        try {
-            Object.defineProperty(Element.prototype, "innerHTML", {
-                set: function(htmlString) {
-                    try {
-                        this.appendChild(document.createRange().createContextualFragment(modifyInlineScripts(htmlString)));
-                    } catch (error) {
-                        console.error("Error in innerHTML setter:", error);
-                        this.innerHTML = htmlString; // Revert to the original HTML on error.
-                    }
-                }
-            });
-        } catch (error) {
-            console.error("Error in defining innerHTML:", error);
-        }
+	// Ensuring compatibility with DOMParser and Object.defineProperty.
+	if (typeof DOMParser === "undefined") {
+		console.error("DOMParser is not supported in this browser.");
+	}
+	if (typeof Object.defineProperty === "undefined") {
+		console.error("Object.defineProperty is not supported in this browser.");
+	} else {
+		// Overriding innerHTML and outerHTML to modify inline scripts and URLs.
+		try {
+			Object.defineProperty(Element.prototype, "innerHTML", {
+				set: function(htmlString) {
+					try {
+						this.appendChild(document.createRange().createContextualFragment(modifyInlineScripts(htmlString)));
+					} catch (error) {
+						console.error("Error in innerHTML setter:", error);
+						this.innerHTML = htmlString; // Revert to the original HTML on error.
+					}
+				}
+			});
+		} catch (error) {
+			console.error("Error in defining innerHTML:", error);
+		}
 
-        try {
-            Object.defineProperty(Element.prototype, "outerHTML", {
-                set: function(htmlString) {
-                    try {
-                        this.replaceWith(...document.createRange().createContextualFragment(modifyInlineScripts(htmlString)).childNodes);
-                    } catch (error) {
-                        console.error("Error in outerHTML setter:", error);
-                        this.outerHTML = htmlString; // Revert to the original HTML on error.
-                    }
-                }
-            });
-        } catch (error) {
-            console.error("Error in defining outerHTML:", error);
-        }
-    }
+		try {
+			Object.defineProperty(Element.prototype, "outerHTML", {
+				set: function(htmlString) {
+					try {
+						this.replaceWith(...document.createRange().createContextualFragment(modifyInlineScripts(htmlString)).childNodes);
+					} catch (error) {
+						console.error("Error in outerHTML setter:", error);
+						this.outerHTML = htmlString; // Revert to the original HTML on error.
+					}
+				}
+			});
+		} catch (error) {
+			console.error("Error in defining outerHTML:", error);
+		}
+	}
 
-    // Modifying XMLHttpRequest and fetch to route requests through the proxy.
-    try {
-        if (window.XMLHttpRequest) {
-            var originalOpen = XMLHttpRequest.prototype.open;
-            window.XMLHttpRequest.prototype.open = function() {
-                if (arguments[1] !== null && arguments[1] !== undefined) {
-                    var url = arguments[1];
-                    url = modifyUrl(url);
-                    arguments[1] = url;
-                }
-                return originalOpen.apply(this, [].slice.call(arguments));
-            };
-        }
-    } catch (error) {
-        console.error("Error in modifying XMLHttpRequest:", error);
-    }
+	// Modifying XMLHttpRequest and fetch to route requests through the proxy.
+	try {
+		if (window.XMLHttpRequest) {
+			var originalOpen = XMLHttpRequest.prototype.open;
+			window.XMLHttpRequest.prototype.open = function() {
+				if (arguments[1] !== null && arguments[1] !== undefined) {
+					var url = arguments[1];
+					url = modifyUrl(url);
+					arguments[1] = url;
+				}
+				return originalOpen.apply(this, [].slice.call(arguments));
+			};
+		}
+	} catch (error) {
+		console.error("Error in modifying XMLHttpRequest:", error);
+	}
 
-    try {
-        if (window.fetch) {
-            var originalFetch = window.fetch;
-            window.fetch = function(url, init) {
-                arguments[0] = modifyUrl(url);
-                return originalFetch.apply(this, arguments);
-            };
-        }
-    } catch (error) {
-        console.error("Error in modifying fetch:", error);
-    }
+	try {
+		if (window.fetch) {
+			var originalFetch = window.fetch;
+			window.fetch = function(url, init) {
+				arguments[0] = modifyUrl(url);
+				return originalFetch.apply(this, arguments);
+			};
+		}
+	} catch (error) {
+		console.error("Error in modifying fetch:", error);
+	}
 
-    // Additional modifications to handle WebSocket, ServiceWorker, and form submissions.
-    try {
-        // WebSocket modification to route connections through the proxy.
-        var originalWebSocket = window.WebSocket;
-        window.WebSocket = function(url, protocols) {
-            var modifiedUrl = modifyUrl(url);
-            return new originalWebSocket(modifiedUrl, protocols);
-        };
+	// Additional modifications to handle WebSocket, ServiceWorker, and form submissions.
+	try {
+		// WebSocket modification to route connections through the proxy.
+		var originalWebSocket = window.WebSocket;
+		window.WebSocket = function(url, protocols) {
+			var modifiedUrl = modifyUrl(url);
+			return new originalWebSocket(modifiedUrl, protocols);
+		};
 
-        // Disabling ServiceWorker registration to prevent caching issues with the proxy.
-        if (navigator.serviceWorker) {
-            navigator.serviceWorker.register = function() {
-                console.warn("Service Worker registration is disabled.");
-                return Promise.reject(new Error("Service Worker registration is disabled."));
-            };
-        }
+		// Disabling ServiceWorker registration to prevent caching issues with the proxy.
+		if (navigator.serviceWorker) {
+			navigator.serviceWorker.register = function() {
+				console.warn("Service Worker registration is disabled.");
+				return Promise.reject(new Error("Service Worker registration is disabled."));
+			};
+		}
 
-        // Ensuring that form submissions are routed through the proxy.
-        document.addEventListener("submit", function(event) {
-            var form = event.target;
-            if (form.tagName === "FORM") {
-                form.action = modifyUrl(form.action);
-            }
-        });
+		// Ensuring that form submissions are routed through the proxy.
+		document.addEventListener("submit", function(event) {
+			var form = event.target;
+			if (form.tagName === "FORM") {
+				form.action = modifyUrl(form.action);
+			}
+		});
 
-        // Modification to the window.open method to handle URL routing.
-        var originalWindowOpen = window.open;
-        window.open = function(url) {
-            return originalWindowOpen.call(window, modifyUrl(url));
-        };
+		// Modification to the window.open method to handle URL routing.
+		var originalWindowOpen = window.open;
+		window.open = function(url) {
+			return originalWindowOpen.call(window, modifyUrl(url));
+		};
 
-        // Disabling Worker creation to prevent uncontrolled network requests.
-        var originalWorker = window.Worker;
-        window.Worker = function() {
-            throw new Error("Web Workers are disabled on this page.");
-        };
-    } catch (error) {
-        console.error("Error in WebSocket/ServiceWorker/Form/WindowOpen/Worker modification:", error);
-    }
+		// Disabling Worker creation to prevent uncontrolled network requests.
+		var originalWorker = window.Worker;
+		window.Worker = function() {
+			throw new Error("Web Workers are disabled on this page.");
+		};
+	} catch (error) {
+		console.error("Error in WebSocket/ServiceWorker/Form/WindowOpen/Worker modification:", error);
+	}
 
-    // History manipulation to ensure navigation is consistent with proxy routing.
-    try {
-        (function(history) {
-            var pushState = history.pushState;
-            var replaceState = history.replaceState;
+	// History manipulation to ensure navigation is consistent with proxy routing.
+	try {
+		(function(history) {
+			var pushState = history.pushState;
+			var replaceState = history.replaceState;
 
-            history.pushState = function(state, title, url) {
-                var modifiedUrl = modifyUrl(url);
-                if (typeof history.onpushstate == "function") {
-                    history.onpushstate({state: state, title: title, url: modifiedUrl});
-                }
-                return pushState.apply(history, [state, title, modifiedUrl]);
-            };
+			history.pushState = function(state, title, url) {
+				var modifiedUrl = modifyUrl(url);
+				if (typeof history.onpushstate == "function") {
+					history.onpushstate({state: state, title: title, url: modifiedUrl});
+				}
+				return pushState.apply(history, [state, title, modifiedUrl]);
+			};
 
-            history.replaceState = function(state, title, url) {
-                var modifiedUrl = modifyUrl(url);
-                if (typeof history.onreplacestate == "function") {
-                    history.onreplacestate({state: state, title: title, url: modifiedUrl});
-                }
-                return replaceState.apply(history, [state, title, modifiedUrl]);
-            };
+			history.replaceState = function(state, title, url) {
+				var modifiedUrl = modifyUrl(url);
+				if (typeof history.onreplacestate == "function") {
+					history.onreplacestate({state: state, title: title, url: modifiedUrl});
+				}
+				return replaceState.apply(history, [state, title, modifiedUrl]);
+			};
 
-            window.addEventListener("popstate", function(event) {
-                // Handle back/forward button navigation.
-                var modifiedUrl = modifyUrl(event.state ? event.state.url : window.location.href);
-                if (window.location.href !== modifiedUrl) {
-                    window.location.replace(modifiedUrl);
-                }
-            });
-        })(window.history);
-    } catch (error) {
-        console.error("Error in history manipulation:", error);
-    }
+			window.addEventListener("popstate", function(event) {
+				// Handle back/forward button navigation.
+				var modifiedUrl = modifyUrl(event.state ? event.state.url : window.location.href);
+				if (window.location.href !== modifiedUrl) {
+					window.location.replace(modifiedUrl);
+				}
+			});
+		})(window.history);
+	} catch (error) {
+		console.error("Error in history manipulation:", error);
+	}
 
-    // Modifying document.write and writeln to search for and modify URLs in content.
-    try {
-        var originalDocumentWrite = document.write;
-        var originalDocumentWriteln = document.writeln;
+	// Modifying document.write and writeln to search for and modify URLs in content.
+	try {
+		var originalDocumentWrite = document.write;
+		var originalDocumentWriteln = document.writeln;
 
-        function modifyUrlInContent(content) {
-            // Regular expression pattern to match URLs in content.
-            var urlPattern = /((?:https?|ftp):\/\/[^\s/$.?#].[^\s]*)/gi;
+		function modifyUrlInContent(content) {
+			// Regular expression pattern to match URLs in content.
+			var urlPattern = /((?:https?|ftp):\/\/[^\s/$.?#].[^\s]*)/gi;
 
-            // Replace URLs in the content with modified URLs.
-            var modifiedContent = content.replace(urlPattern, function(match, quote, url) {
-                // Check if the URL already contains the proxy prefix.
-                if (!url.includes(proxyPrefix)) {
-                    // Modify the URL by adding the proxy prefix.
-                    url = proxyPrefix + url;
-                    return quote ? quote + url : url;
-                }
-                return match; // Return unchanged if already modified.
-            });
+			// Replace URLs in the content with modified URLs.
+			var modifiedContent = content.replace(urlPattern, function(match, quote, url) {
+				// Check if the URL already contains the proxy prefix.
+				if (!url.includes(proxyPrefix)) {
+					// Modify the URL by adding the proxy prefix.
+					url = proxyPrefix + url;
+					return quote ? quote + url : url;
+				}
+				return match; // Return unchanged if already modified.
+			});
 
-            return modifiedContent;
-        }
+			return modifiedContent;
+		}
 
-        function modifiedWrite(content) {
-            // Modify URLs in document.write content.
-            var modifiedContent = modifyUrlInContent(content);
-            originalDocumentWrite.call(document, modifiedContent);
-        }
+		function modifiedWrite(content) {
+			// Modify URLs in document.write content.
+			var modifiedContent = modifyUrlInContent(content);
+			originalDocumentWrite.call(document, modifiedContent);
+		}
 
-        function modifiedWriteln(content) {
-            // Modify URLs in document.writeln content.
-            var modifiedContent = modifyUrlInContent(content);
-            originalDocumentWriteln.call(document, modifiedContent);
-        }
+		function modifiedWriteln(content) {
+			// Modify URLs in document.writeln content.
+			var modifiedContent = modifyUrlInContent(content);
+			originalDocumentWriteln.call(document, modifiedContent);
+		}
 
-        document.write = modifiedWrite;
-        document.writeln = modifiedWriteln;
-    } catch (error) {
-        console.error("Error in modifying document.write and writeln:", error);
-    }
+		document.write = modifiedWrite;
+		document.writeln = modifiedWriteln;
+	} catch (error) {
+		console.error("Error in modifying document.write and writeln:", error);
+	}
 
-    // Helper functions for URL parsing and modifications.
-    function parseURI(url) {
-        // Parses a URL and returns its components.
-        try {
-            var m = String(url).replace(/^\s+|\s+$/g, "").match(/^([^:\/?#]+:)?(\/\/(?:[^:@]*(?::[^:@]*)?@)?(([^:\/?#]*)(?::(\d*))?))?([^?#]*)(\?[^#]*)?(#[\s\S]*)?/);
-            return (m ? {
-                href: m[0] || "",
-                protocol: m[1] || "",
-                authority: m[2] || "",
-                host: m[3] || "",
-                hostname: m[4] || "",
-                port: m[5] || "",
-                pathname: m[6] || "",
-                search: m[7] || "",
-                hash: m[8] || ""
-            } : null);
-        } catch (error) {
-            console.error("Error in parseURI:", error);
-            return null;
-        }
-    }
+	// Helper functions for URL parsing and modifications.
+	function parseURI(url) {
+		// Parses a URL and returns its components.
+		try {
+			var m = String(url).replace(/^\s+|\s+$/g, "").match(/^([^:\/?#]+:)?(\/\/(?:[^:@]*(?::[^:@]*)?@)?(([^:\/?#]*)(?::(\d*))?))?([^?#]*)(\?[^#]*)?(#[\s\S]*)?/);
+			return (m ? {
+				href: m[0] || "",
+				protocol: m[1] || "",
+				authority: m[2] || "",
+				host: m[3] || "",
+				hostname: m[4] || "",
+				port: m[5] || "",
+				pathname: m[6] || "",
+				search: m[7] || "",
+				hash: m[8] || ""
+			} : null);
+		} catch (error) {
+			console.error("Error in parseURI:", error);
+			return null;
+		}
+	}
 
 	function rel2abs(base, href) { // RFC 3986
-        // Converts a relative URL to an absolute URL based on a base URL. 
+		// Converts a relative URL to an absolute URL based on a base URL. 
 		try {
 			function removeDotSegments(input) {
 				var output = [];
@@ -1039,65 +1054,65 @@ if (stripos($contentType, "text/html") !== false) {
 			href = parseURI(href || "");
 			base = parseURI(base || "");
 
-            // Combines the base URL and relative URL into an absolute URL.
-            return !href || !base ? null : (href.protocol || base.protocol) +
-                (href.protocol || href.authority ? href.authority : base.authority) +
-                removeDotSegments(href.protocol || href.authority || href.pathname.charAt(0) === "/" ? href.pathname : (href.pathname ? ((base.authority && !base.pathname ? "/" : "") + base.pathname.slice(0, base.pathname.lastIndexOf("/") + 1) + href.pathname) : base.pathname)) +
-                (href.protocol || href.authority || href.pathname ? href.search : (href.search || base.search)) +
-                href.hash;
-        } catch (error) {
-            console.error("Error in rel2abs:", error);
-            return null;
-        }
-    }
+			// Combines the base URL and relative URL into an absolute URL.
+			return !href || !base ? null : (href.protocol || base.protocol) +
+				(href.protocol || href.authority ? href.authority : base.authority) +
+				removeDotSegments(href.protocol || href.authority || href.pathname.charAt(0) === "/" ? href.pathname : (href.pathname ? ((base.authority && !base.pathname ? "/" : "") + base.pathname.slice(0, base.pathname.lastIndexOf("/") + 1) + href.pathname) : base.pathname)) +
+				(href.protocol || href.authority || href.pathname ? href.search : (href.search || base.search)) +
+				href.hash;
+		} catch (error) {
+			console.error("Error in rel2abs:", error);
+			return null;
+		}
+	}
 	
-    function modifyInlineScripts(htmlString) {
-        // Parses the HTML string and modifies script src attributes.
-        try {
-            var parser = new DOMParser();
-            var doc = parser.parseFromString(htmlString, "text/html");
-            var scripts = doc.getElementsByTagName("script");
+	function modifyInlineScripts(htmlString) {
+		// Parses the HTML string and modifies script src attributes.
+		try {
+			var parser = new DOMParser();
+			var doc = parser.parseFromString(htmlString, "text/html");
+			var scripts = doc.getElementsByTagName("script");
 
-            // Iterates over script tags to modify their src attributes.
-            for (var i = 0; i < scripts.length; i++) {
-                var script = scripts[i];
-                if (script.src) {
-                    script.src = modifyUrl(script.src);
-                }
-            }
+			// Iterates over script tags to modify their src attributes.
+			for (var i = 0; i < scripts.length; i++) {
+				var script = scripts[i];
+				if (script.src) {
+					script.src = modifyUrl(script.src);
+				}
+			}
 
-            return new XMLSerializer().serializeToString(doc);
-        } catch (error) {
-            console.error("Error in modifyInlineScripts:", error);
-            return htmlString; // Return the original HTML string on error.
-        }
-    }
+			return new XMLSerializer().serializeToString(doc);
+		} catch (error) {
+			console.error("Error in modifyInlineScripts:", error);
+			return htmlString; // Return the original HTML string on error.
+		}
+	}
 
-    function modifyUrl(url) {
-        // Modifies the given URL to include the proxy prefix.
-        try {
-            if (typeof url === 'string') {
-                if (!url.includes(proxyPrefix)) {
-                    var urlObj = parseURI(url);
-                    if (urlObj) {
-                        url = rel2abs(window.location.href, urlObj.href);
-                        if (url.indexOf(proxyPrefix) === -1) {
-                            url = proxyPrefix + url;
-                        }
-                    }
-                }
-            } else {
-                console.error(`Error in modifyUrl: URL is not a string. Received type: \${typeof url}`);
-                if (typeof url === 'object') {
-                    console.log(`Object JSON: \${JSON.stringify(url)}`);
-                }
-            }
-            return url;
-        } catch (error) {
-            console.error("Error in modifyUrl:", error);
-            return url; // Return the original URL on error.
-        }
-    }
+	function modifyUrl(url) {
+		// Modifies the given URL to include the proxy prefix.
+		try {
+			if (typeof url === 'string') {
+				if (!url.includes(proxyPrefix)) {
+					var urlObj = parseURI(url);
+					if (urlObj) {
+						url = rel2abs(window.location.href, urlObj.href);
+						if (url.indexOf(proxyPrefix) === -1) {
+							url = proxyPrefix + url;
+						}
+					}
+				}
+			} else {
+				console.error(`Error in modifyUrl: URL is not a string. Received type: \${typeof url}`);
+				if (typeof url === 'object') {
+					console.log(`Object JSON: \${JSON.stringify(url)}`);
+				}
+			}
+			return url;
+		} catch (error) {
+			console.error("Error in modifyUrl:", error);
+			return url; // Return the original URL on error.
+		}
+	}
 	
 })();
 
@@ -1123,25 +1138,20 @@ elseif (stripos($contentType, "text/css") !== false) {
 
 	header("Content-Type: text/css");
 }
-elseif (stripos($contentType, "multipart/form-data") !== false) { 
-//The problem here is that the boundary, something like
-//boundary=----WebKitFormBoundaryyEmKNDsBKjB7QEqu
-//never makes it into the Content-Type: header
-//So remove the content-type/length and the browser will fill in the rest 
-	//header("Content-Length: " . strlen($responseBody) , true);
+elseif(in_array($contentType, $compressibleMimeTypes)){
+	// if it is a type that is allowed to be compressed via gzip
+	header("Content-Type: " . $contentType);
+	header('Content-Disposition: filename="'.basename(parse_url($url, PHP_URL_PATH).'"'));
 	echo $responseBody;
 }
-elseif (stripos($contentType, "video/mp4") !== false) {
+elseif (stripos($contentType, "multipart/form-data") !== false) { 
 	ob_end_clean();
-    // This is an MP4 file.
-    // Handle it accordingly, e.g., output or process the MP4 content.
-    header("Content-Type: video/mp4");
-    echo $responseBody;
+	//The problem here is that the boundary, something like boundary=----WebKitFormBoundaryyEmKNDsBKjB7QEqu never makes it into the Content-Type: header
+	echo $responseBody;
 }
 else {
+	ob_end_clean(); // images and videos wont load without this!
 	//This isn't a web page or CSS, so serve unmodified through the proxy with the correct headers (images, JavaScript, etc.)
-	//Will add more processing in the future, potentially
-	//header("Content-Length: " . strlen($responseBody) , true);
 	header("Content-Type: " . $contentType); //not having this was causing a bunch of issues
 	header('Content-Disposition: filename="'.basename(parse_url($url, PHP_URL_PATH).'"'));//Keep same filename when downloading from server, doesn't always work but is better
 	echo $responseBody;
