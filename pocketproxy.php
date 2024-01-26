@@ -1,7 +1,7 @@
 <?php
 //Too many captcha bypassing methods; I did not set it up with security in mind, rather, bot prevention!
 
-include "pages/Captcha/AIO-Captcha.php";
+include "Captcha/AIO-Captcha.php";
 use Gregwar\Captcha\CaptchaBuilder;
 use Gregwar\Captcha\PhraseBuilder;
 
