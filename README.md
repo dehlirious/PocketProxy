@@ -1,5 +1,8 @@
 # PocketProxy
 
+![GitHub Stars](https://img.shields.io/github/stars/dehlirious/PocketProxy)
+![GitHub Issues](https://img.shields.io/github/issues/dehlirious/PocketProxy)
+
 This is my own edition of *[http://joshdick.github.io/miniProxy](http://joshdick.github.io/miniProxy)*, renamed to PocketProxy!
 
 Demo it in live at *[https://zrr.us/pocketproxy.php](https://zrr.us/pocketproxy.php)*
