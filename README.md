@@ -1,7 +1,39 @@
 # PocketProxy
 
-![GitHub Stars](https://img.shields.io/github/stars/dehlirious/PocketProxy)
-![GitHub Issues](https://img.shields.io/github/issues/dehlirious/PocketProxy)
+<p align="center">
+    <a href="https://badgen.net/github/commits/dehlirious/PocketProxy">
+        <img src="https://badgen.net/github/commits/dehlirious/PocketProxy" alt="GitHub commits" />
+    </a>
+    <a href="https://GitHub.com/dehlirious/PocketProxy/stargazers/">
+        <img src="https://badgen.net/github/stars/dehlirious/PocketProxy" alt="GitHub stars" />
+    </a>
+    <a href="https://GitHub.com/dehlirious/PocketProxy/network/">
+        <img src="https://badgen.net/github/forks/dehlirious/PocketProxy/" alt="GitHub forks" />
+    </a>
+    <a href="https://GitHub.com/dehlirious/PocketProxy/watchers/">
+        <img src="https://badgen.net/github/watchers/dehlirious/PocketProxy/" alt="GitHub watchers" />
+    </a>
+    <a href="https://GitHub.com/dehlirious/PocketProxy/pull/">
+        <img src="https://badgen.net/github/prs/dehlirious/PocketProxy" alt="GitHub total pull requests" />
+    </a>
+    <a href="https://github.com/dehlirious/PocketProxy/issues">
+        <img src="https://img.shields.io/github/issues/dehlirious/PocketProxy" alt="GitHub issues" />
+    </a>
+    <a href="http://isitmaintained.com/project/dehlirious/PocketProxy">
+        <img src="http://isitmaintained.com/badge/open/dehlirious/PocketProxy.svg" alt="Percentage of issues still open" />
+    </a>
+    <a href="https://github.com/dehlirious/php_argon2id/contributors">
+        <img src="https://badgen.net/github/contributors/dehlirious/dehlirious" alt="GitHub contributors" />
+    </a>
+    <a href="https://github.com/dehlirious/PocketProxy/releases">
+        <img src="https://img.shields.io/github/release/dehlirious/PocketProxy.svg" alt="GitHub release" />
+    </a>
+    <br/>
+    <!-- Support -->
+    <a href="https://buymeacoffee.com/devsir">
+        <img src="https://badgen.net/badge/icon/buymeacoffee?icon=buymeacoffee&label" alt="Buymeacoffee" />
+    </a>
+</p>
 
 This is my own edition of *[http://joshdick.github.io/miniProxy](http://joshdick.github.io/miniProxy)*, renamed to PocketProxy!
 
