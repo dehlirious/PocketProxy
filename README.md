@@ -22,8 +22,8 @@
     <a href="http://isitmaintained.com/project/dehlirious/PocketProxy">
         <img src="http://isitmaintained.com/badge/open/dehlirious/PocketProxy.svg" alt="Percentage of issues still open" />
     </a>
-    <a href="https://github.com/dehlirious/php_argon2id/contributors">
-        <img src="https://badgen.net/github/contributors/dehlirious/dehlirious" alt="GitHub contributors" />
+    <a href="https://github.com/dehlirious/PocketProxy/contributors">
+        <img src="https://badgen.net/github/contributors/dehlirious/PocketProxy" alt="GitHub contributors" />
     </a>
     <br/>
     <!-- Support -->
