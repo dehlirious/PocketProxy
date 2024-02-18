@@ -25,9 +25,6 @@
     <a href="https://github.com/dehlirious/php_argon2id/contributors">
         <img src="https://badgen.net/github/contributors/dehlirious/dehlirious" alt="GitHub contributors" />
     </a>
-    <a href="https://github.com/dehlirious/PocketProxy/releases">
-        <img src="https://img.shields.io/github/release/dehlirious/PocketProxy.svg" alt="GitHub release" />
-    </a>
     <br/>
     <!-- Support -->
     <a href="https://buymeacoffee.com/devsir">
