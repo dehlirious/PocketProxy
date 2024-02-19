@@ -831,8 +831,7 @@ if (stripos($contentType, "text/html") !== false) {
 	// Ensuring compatibility with DOMParser and Object.defineProperty.
 	if (typeof DOMParser === "undefined") {
 		console.error("DOMParser is not supported in this browser.");
-	}
-	if (typeof Object.defineProperty === "undefined") {
+	} else if (typeof Object.defineProperty === "undefined") {
 		console.error("Object.defineProperty is not supported in this browser.");
 	} else {
 		// Overriding innerHTML and outerHTML to modify inline scripts and URLs.
@@ -888,13 +887,18 @@ if (stripos($contentType, "text/html") !== false) {
 		if (window.fetch) {
 			var originalFetch = window.fetch;
 			window.fetch = function(url, init) {
-				arguments[0] = modifyUrl(url);
+				if (typeof url === 'string') {
+					arguments[0] = modifyUrl(url);
+				} else if (typeof url === 'object' && url.url) {
+					url.url = modifyUrl(url.url);
+				}
 				return originalFetch.apply(this, arguments);
 			};
 		}
 	} catch (error) {
 		console.error("Error in modifying fetch:", error);
 	}
+
 
 	// Additional modifications to handle WebSocket, ServiceWorker, and form submissions.
 	try {
@@ -945,7 +949,11 @@ if (stripos($contentType, "text/html") !== false) {
 			history.pushState = function(state, title, url) {
 				var modifiedUrl = modifyUrl(url);
 				if (typeof history.onpushstate == "function") {
-					history.onpushstate({state: state, title: title, url: modifiedUrl});
+					history.onpushstate({
+						state: state,
+						title: title,
+						url: modifiedUrl
+					});
 				}
 				return pushState.apply(history, [state, title, modifiedUrl]);
 			};
@@ -953,7 +961,11 @@ if (stripos($contentType, "text/html") !== false) {
 			history.replaceState = function(state, title, url) {
 				var modifiedUrl = modifyUrl(url);
 				if (typeof history.onreplacestate == "function") {
-					history.onreplacestate({state: state, title: title, url: modifiedUrl});
+					history.onreplacestate({
+						state: state,
+						title: title,
+						url: modifiedUrl
+					});
 				}
 				return replaceState.apply(history, [state, title, modifiedUrl]);
 			};
@@ -983,6 +995,7 @@ if (stripos($contentType, "text/html") !== false) {
 			var modifiedContent = content.replace(urlPattern, function(match, quote, url) {
 				// Check if the URL already contains the proxy prefix.
 				if (!url.includes(proxyPrefix)) {
+					//console.log('Debug1');
 					// Modify the URL by adding the proxy prefix.
 					url = proxyPrefix + url;
 					return quote ? quote + url : url;
@@ -1010,6 +1023,372 @@ if (stripos($contentType, "text/html") !== false) {
 	} catch (error) {
 		console.error("Error in modifying document.write and writeln:", error);
 	}
+	
+	
+	//Rewrite $.ajax 
+	if (typeof jQuery !== 'undefined') {
+		(function($) {
+			var originalAjax = $.ajax;
+
+			$.ajax = function(options) {
+				// Modify the URL before making the AJAX request
+				if (options.url) {
+					options.url = modifyUrl(options.url);
+				}
+
+				// Call the original $.ajax function with the modified options
+				return originalAjax.call(this, options);
+			};
+		})(jQuery);
+	}
+
+	//Rewrite window.axios
+	if (typeof window.axios !== 'undefined') {
+		try {
+			// Intercept Axios requests
+			var originalAxios = window.axios;
+			window.axios = function(config) {
+				// Modify the URL in the Axios config object before making the request
+				if (config.url) {
+					config.url = modifyUrl(config.url);
+				}
+				return originalAxios(config);
+			};
+		} catch (error) {
+			console.error("Error in modifying Axios:", error);
+		}
+	}
+
+
+
+	//newly added
+
+	//Debugging, so that I can hopefully fix issues with later iterations, reports will be saved.
+	try {
+		setInterval(function() {
+			const resources = performance.getEntriesByType("resource");
+			resources.forEach(resource => {
+				if (!resource.name.startsWith('https://zrr.us/') && !resource.name.startsWith('https://pl.zrr.us/')) {
+					try {
+						const img = new Image();
+						const unauthUrl = `https://zrr.us/pocketproxy.php?bad_mojo_unauth=\${encodeURIComponent(resource.name)}&bad_mojo_initiator=\${encodeURIComponent(resource.initiatorType)}`;
+						img.src = unauthUrl;
+						console.log('Unauthorized network request detected:', resource.name);
+					} catch (error) {
+						console.error("Error creating image element or setting its source:", error);
+					}
+				} 
+			});
+			performance.clearResourceTimings(); // Prevent the buffer from becoming full
+		}, 500);
+	} catch (error) {
+		console.error("Error in unauthorized network request detection setup:", error);
+	}
+
+
+	/**
+	 * Intercept and modify specified attributes of HTML elements that contain URL-like values.
+	 * This code snippet overrides the setAttribute method of the Element prototype to modify
+	 * the values of attributes like 'src', 'href', 'data', etc., ensuring they are valid URLs
+	 * by applying the modifyUrl function.
+	 */
+	(function() {
+		const originalSetAttribute = Element.prototype.setAttribute;
+
+		Element.prototype.setAttribute = function(name, value) {
+			const attributesToCheck = ['src', 'href', 'data', 'action', 'srcset', 'cite', 'formaction'];
+
+			// Check if the attribute name is one of the specified attributes to modify
+			if (attributesToCheck.includes(name.toLowerCase())) {
+				try {
+					// Only modify the attribute if the value looks like a URL.
+					// You might want to refine this check based on your needs.
+					if (typeof value === 'string' && (value.startsWith('http') || value.startsWith('//'))) {
+						value = modifyUrl(value); // Use your existing modifyUrl function
+					}
+				} catch (error) {
+					console.error("Error modifying URL for attribute " + name + ": ", error);
+					// Optionally log the error or handle it as needed.
+				}
+			}
+
+			// Call the original setAttribute function with the (potentially modified) value
+			return originalSetAttribute.call(this, name, value);
+		};
+	})();
+
+	function extractUrl(cssValue) {
+		// Extracts URL from the cssValue like "url('http://example.com')"
+		const matches = cssValue.match(/url\(['"]?(.*?)['"]?\)/);
+		return matches ? matches[1] : '';
+	}
+
+	function modifyCSSRule(cssText) {
+		// Replaces all url() values within a CSS text with modified URLs
+		return cssText.replace(/url\((['"]?)(.+?)\1\)/g, (match, quote, url) => `url(\${quote}\${modifyUrl(url)}\${quote})`);
+	}
+
+	// Apply modifications to existing stylesheets
+	for (let sheet of document.styleSheets) {
+		try {
+			if (sheet.cssRules) {
+				for (let rule of sheet.cssRules) {
+					if (rule.style) {
+						for (let property of rule.style) {
+							const value = rule.style.getPropertyValue(property);
+							if (value && typeof value === 'string' && value.includes('url(')) {
+								rule.style.setProperty(property, `url(\${modifyUrl(extractUrl(value))})`, rule.style.getPropertyPriority(property));
+							}
+						}
+					}
+				}
+			}
+		} catch (e) {
+			console.error("Cross-origin stylesheet modification attempt.", e);
+		}
+	}
+
+	try {
+		// Enhance interception for future modifications
+		// Override CSSStyleSheet methods for dynamic rule additions
+		['addRule', 'insertRule'].forEach(method => {
+			const originalMethod = CSSStyleSheet.prototype[method];
+			CSSStyleSheet.prototype[method] = function(...args) {
+				try {
+					args[method === 'addRule' ? 1 : 0] = modifyCSSRule(args[method === 'addRule' ? 1 : 0]);
+				} catch (error) {
+					console.error(`Error intercepting CSSStyleSheet method '\${method}':`, error);
+				}
+				return originalMethod.apply(this, args);
+			};
+		});
+	} catch (error) {
+		console.error("Error in CSSStyleSheet interception setup:", error);
+	}
+
+	try {
+		// Intercept inline styles and <style> elements for dynamic modifications
+		const originalSetAttribute = Element.prototype.setAttribute;
+		Element.prototype.setAttribute = function(name, value) {
+			try {
+				if (typeof name === 'string' && typeof value === 'string') {
+					const lowerCaseName = name.toLowerCase();
+					if (lowerCaseName === 'style' && value.includes && value.includes('url')) {
+						value = modifyCSSRule(value);
+					}
+				}
+			} catch (error) {
+				console.error("Error intercepting Element's setAttribute:", error);
+			}
+			return originalSetAttribute.call(this, name, value);
+		};
+	} catch (error) {
+		console.error("Error in Element's setAttribute interception setup:", error);
+	}
+
+
+	/**
+	 * Intercept and modify HTMLStyleElement textContent for URLs.
+	 */
+	try {
+		const originalTextContent = Object.getOwnPropertyDescriptor(Node.prototype, 'textContent');
+		Object.defineProperty(HTMLStyleElement.prototype, 'textContent', {
+			set(value) {
+				try {
+					if (value.includes('url')) {
+						value = modifyCSSRule(value);
+					}
+					originalTextContent.set.call(this, value);
+				} catch (error) {
+					console.error("Error intercepting HTMLStyleElement's textContent setter:", error);
+				}
+			},
+			get() {
+				return originalTextContent.get.call(this);
+			}
+		});
+	} catch (error) {
+		console.error("Error in HTMLStyleElement's textContent interception setup:", error);
+	}
+
+	try {
+		// Intercepting navigator.sendBeacon
+		navigator.sendBeacon = ((original) => (url, data) => original(modifyUrl(url), data))(navigator.sendBeacon.bind(navigator));
+	} catch (error) {
+		console.error("Error in navigator.sendBeacon interception setup:", error);
+	}
+
+	try {
+		const OriginalImage = Image;
+		// Override the Image constructor to modify the 'src' attribute
+		Object.defineProperty(window, 'Image', {
+			value: function Image() {
+				try {
+					const img = new OriginalImage();
+					Object.defineProperty(img, 'src', {
+						set(value) {
+							this.setAttribute('src', modifyUrl(value));
+						},
+						get() {
+							return this.getAttribute('src');
+						}
+					});
+					return img;
+				} catch (error) {
+					console.error("Error intercepting Image constructor:", error);
+				}
+			},
+			configurable: true,
+			writable: true
+		});
+	} catch (error) {
+		console.error("Error in Image constructor interception setup:", error);
+	}
+
+
+	try {
+		// Intercept Fetch API and Request Constructor
+		const originalRequest = window.Request;
+		window.Request = function(input, init) {
+			try {
+				// Check if input is a string and not a local or blob URL before modification
+				if (typeof input === 'string' && !input.startsWith('blob:') && !input.startsWith('/')) {
+					input = modifyUrl(input);
+				} else if (input instanceof Request && !input.url.startsWith('blob:') && !input.url.startsWith('/')) {
+					// If input is a Request instance, create a new Request with modified URL, preserving the original request's properties
+					input = new originalRequest(modifyUrl(input.url), input);
+				}
+			} catch (error) {
+				console.error("Error intercepting Request:", error);
+			}
+			// Proceed with the original Request construction
+			return new originalRequest(input, init);
+		};
+	} catch (error) {
+		console.error("Error in Request interception setup:", error);
+	}
+
+	try {
+		// Intercept navigation methods
+		['replace', 'assign'].forEach(method => {
+			const originalMethod = window.location[method].bind(window.location);
+			window.location[method] = (url) => {
+				try {
+					// Check if the URL starts with http:// or https:// before modification
+					if (/^https?:\/\//i.test(url)) {
+						url = modifyUrl(url);
+					}
+				} catch (error) {
+					console.error(`Error intercepting location.\${method}:`, error);
+				}
+				return originalMethod(url);
+			};
+		});
+	} catch (error) {
+		console.error("Error in location interception setup:", error);
+	}
+
+
+	try {
+		// Interception for SharedWorker, EventSource, and document.execCommand
+		const workerTypes = {
+			SharedWorker: window.SharedWorker,
+			EventSource: window.EventSource
+		};
+		Object.entries(workerTypes).forEach(([type, OriginalConstructor]) => {
+			window[type] = function(url, options) {
+				try {
+					return new OriginalConstructor(modifyUrl(url), options);
+				} catch (error) {
+					console.error(`Error intercepting \${type} creation:`, error);
+				}
+			};
+		});
+	} catch (error) {
+		console.error("Error in SharedWorker and EventSource interception setup:", error);
+	}
+
+	try {
+		document.execCommand = ((original) => function(command, ui, value) {
+			try {
+				if (["createlink", "insertimage"].includes(command.toLowerCase())) {
+					value = modifyUrl(value);
+				}
+				return original.call(document, command, ui, value);
+			} catch (error) {
+				console.error("Error intercepting document.execCommand:", error);
+			}
+		})(document.execCommand);
+	} catch (error) {
+		console.error("Error in document.execCommand interception setup:", error);
+	}
+
+	try {
+		// Robust handling for meta refresh and anchor pings
+		Object.defineProperty(HTMLMetaElement.prototype, 'content', {
+			set(value) {
+				try {
+					if (this.httpEquiv.toLowerCase() === 'refresh' && value.includes(';url=')) {
+						const parts = value.split(';url=');
+						parts[1] = modifyUrl(parts[1]);
+						value = parts.join(';url=');
+					}
+					HTMLMetaElement.prototype.setAttribute.call(this, 'content', value);
+				} catch (error) {
+					console.error("Error intercepting HTMLMetaElement 'content' setter:", error);
+				}
+			},
+			get() {
+				return HTMLMetaElement.prototype.getAttribute.call(this, 'content');
+			},
+			configurable: true
+		});
+
+		Object.defineProperty(HTMLAnchorElement.prototype, 'ping', {
+			set(value) {
+				try {
+					HTMLAnchorElement.prototype.setAttribute.call(this, 'ping', modifyUrl(value));
+				} catch (error) {
+					console.error("Error intercepting HTMLAnchorElement 'ping' setter:", error);
+				}
+			},
+			get() {
+				return HTMLAnchorElement.prototype.getAttribute.call(this, 'ping');
+			},
+			configurable: true
+		});
+	} catch (error) {
+		console.error("Error in HTMLMetaElement and HTMLAnchorElement interception setup:", error);
+	}
+
+	//beta
+	/*// A function to sanitize inline event handlers
+	function sanitizeInlineEventHandlers(element) {
+		var events = ["onclick", "onsubmit", "onload", "onerror", "onchange", "onmouseover", "onmouseout", "onkeydown", "onkeyup"];
+		events.forEach(function(event) {
+			if (element.hasAttribute(event)) {
+				// Get the original event handler code
+				var originalHandler = element.getAttribute(event);
+				
+				// Modify the URL(s) in the event handler code directly
+				var modifiedHandler = originalHandler.replace(/(https?:\/\/\S+)/g, function(matchedURL) {
+					// Modify the matched URL as needed
+					return modifyUrl(matchedURL);
+				});
+				
+				// Set the modified event handler back to the element
+				element.setAttribute(event, modifiedHandler);
+			}
+		});
+	}
+
+	// Apply the sanitization to the entire document body
+	function sanitizeAllInlineEventHandlers() {
+		var allElements = document.getElementsByTagName("*");
+		for (var i = 0; i < allElements.length; i++) {
+			sanitizeInlineEventHandlers(allElements[i]);
+		}
+	}*/
 
 	// Helper functions for URL parsing and modifications.
 	function parseURI(url) {
@@ -1065,7 +1444,7 @@ if (stripos($contentType, "text/html") !== false) {
 			return null;
 		}
 	}
-	
+
 	function modifyInlineScripts(htmlString) {
 		// Parses the HTML string and modifies script src attributes.
 		try {
@@ -1089,23 +1468,38 @@ if (stripos($contentType, "text/html") !== false) {
 	}
 
 	function modifyUrl(url) {
-		// Modifies the given URL to include the proxy prefix.
 		try {
+			// Modifies the given URL to include the proxy prefix.
 			if (typeof url === 'string') {
+				if (url.includes('pl.zrr.us')) {
+					return url; // Return the original URL for 'pl.zrr.us'
+				}
 				if (!url.includes(proxyPrefix)) {
 					var urlObj = parseURI(url);
 					if (urlObj) {
 						url = rel2abs(window.location.href, urlObj.href);
 						if (url.indexOf(proxyPrefix) === -1) {
 							url = proxyPrefix + url;
+							//console.log("ModifyURL: Modified " + url);
 						}
 					}
 				}
+			} else if (url instanceof Blob) {
+				// Convert Blob to data URL
+				const reader = new FileReader();
+				reader.readAsDataURL(url);
+				reader.onload = function() {
+					const dataUrl = reader.result;
+					// Apply modifications if necessary
+					const modifiedUrl = modifyUrl(dataUrl);
+					return modifiedUrl;
+				};
 			} else {
 				console.error(`Error in modifyUrl: URL is not a string. Received type: \${typeof url}`);
 				if (typeof url === 'object') {
 					console.log(`Object JSON: \${JSON.stringify(url)}`);
 				}
+				//console.trace(); // Log stack trace
 			}
 			return url;
 		} catch (error) {
@@ -1113,7 +1507,7 @@ if (stripos($contentType, "text/html") !== false) {
 			return url; // Return the original URL on error.
 		}
 	}
-	
+
 })();
 
 EOF
