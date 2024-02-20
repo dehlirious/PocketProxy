@@ -32,30 +32,30 @@
     </a>
 </p>
 
-This is my own edition of *[http://joshdick.github.io/miniProxy](http://joshdick.github.io/miniProxy)*, renamed to PocketProxy!
+PocketProxy is a straightforward PHP web proxy tailored for individuals seeking an uncomplicated method to bypass internet content filters, enhance online privacy, or browse the internet anonymously.
 
-Demo it in live at *[https://zrr.us/pocketproxy.php](https://zrr.us/pocketproxy.php)*
+Experience PocketProxy in action: [https://zrr.us/pocketproxy.php](https://zrr.us/pocketproxy.php)
 
-Joshua Dick originally made miniProxy and dropped development, I now occasionally make updates to it
+## Acknowledgements
 
----
+PocketProxy builds upon the groundwork established by Joshua Dick with [miniProxy](https://github.com/joshdick/miniProxy). After the original project was discontinued, I took it upon myself to not only maintain its presence but also enhance its functionalities, aligning it with the evolving requirements of users and myself. Additionally, significant modifications have been implemented to augment anonymity, security, and privacy for our users, ensuring a safer and more confidential browsing experience.
 
 ## About PocketProxy
 
-PocketProxy is a simple web proxy written in PHP that can allow you to bypass Internet content filters, or to browse the internet anonymously. 
-PocketProxy is the successor to [https://github.com/joshdick/miniProxy](https://github.com/joshdick/miniProxy).
+PocketProxy facilitates advanced capabilities for anonymous web browsing and bypassing content filters. It is crafted with PHP, harnessing the power of simplicity to ensure a seamless user experience, whether you opt to utilize it or host it yourself. 
+
+While PocketProxy aims to provide anonymity, it's essential to acknowledge that no web proxy can ensure absolute privacy, particularly when attempting to browse the web anonymously with JavaScript enabled.
 
 ## Prerequisites
 
-PocketProxy should be able to run on any web server with PHP 5.4.7 or later. PocketProxy requires PHP's `curl`, `mbstring` and `xml` extensions to be installed alongside `gd` for captcha usage.
+ - PocketProxy should be able to run on any web server with PHP 5.4.7 or later. *untested 
+ - PocketProxy requires PHP's `curl`, `mbstring` and `xml` extensions to be installed alongside the optional `gd` extension for captcha usage.
 
 ## Installation and Use
 
-Simply copy `pocketproxy.php` to your web server (it's okay to rename it) and access it directly. That's it! You'll be presented with further usage instructions.
+Simply copy `pocketproxy.php` to your web server and access it directly. That's it! You'll be presented with further usage instructions.
 
 PocketProxy doesn't require any configuration out of the box, but configuration options are available; see the top of `pocketproxy.php` for details.
-
-*[https://dehlirious.github.io/PocketProxy/](https://dehlirious.github.io/PocketProxy/)*
 
 ## Known Limitations
 
@@ -64,9 +64,10 @@ PocketProxy has several known limitations. Some of them may be fixed in future r
 * `<object>` tags are not handled
 * YouTube does not work (try [youtubeunblocked.live](youtubeunblocked.live))
 * No cookie support
-* Basic AJAX support, but only for browsers that use `XMLHttpRequest`
+* Many MANY websites can display broken qualities when they are javascript dependant.
+* Probably more, but as I come across limitations I tend to forget them before writing them down
 
-## Contact and Feedback
+## Contribute
 
-If you'd like to contribute to PocketProxy or file a bug or feature request, please visit [its GitHub page]
+Your contributions are welcome! Whether it's reporting bugs, suggesting features, or contributing to the code, your input helps make PocketProxy better for everyone.
 
