@@ -1,12 +1,23 @@
 <?php
 //Too many captcha bypassing methods; I did not set it up with security in mind, rather, bot prevention!
 
-include "Captcha/AIO-Captcha.php";
-use Gregwar\Captcha\CaptchaBuilder;
-use Gregwar\Captcha\PhraseBuilder;
+$captchascript = "Captcha/AIO-Captcha.php";
+if (file_exists($captchascript)) {
+    include($captchascript);
+}
+
+
+/**
+ * Set the path for the blacklist log file or the functionality will be disabled
+ *
+ * For privacy protection, ensure to customize this path to a secure location.
+ * Logging functionality will remain disabled until this variable is modified.
+ *
+ * $blacklistlog : The path to the blacklist log file.
+ */
 
 class Proxy {
-	public $a, $maxdl, $forceCORS, $blacklistlog, $cce, $prefixPort, $prefixHost, $blacklistPatterns, $captchasitesz, $httpvariable, $whitelistPatterns, $disallowLocal, $anonymize, $startURL, $landingExampleURL, $requiredExtensions;
+	public $a, $maxdl, $forceCORS, $blacklistlog, $cce, $prefixPort, $prefixHost, $blacklistPatterns, $captchasitesz, $httpvariable, $whitelistPatterns, $disallowLocal, $startURL, $landingExampleURL, $requiredExtensions;
 	public function __construct() {
 		//To allow proxying any URL, set $whitelistPatterns to an empty array (the default).
 		$this->whitelistPatterns = [
@@ -16,7 +27,10 @@ class Proxy {
 		];
 
 		$this->blacklistPatterns = [
-		$this->getHostnamePattern("YOURDOMAIN.COM") , $this->getHostnamePattern("httpbin.org") ];
+		//$this->getHostnamePattern("example.net")
+		$this->getHostnamePattern($_SERVER['HTTP_HOST']) , $this->getHostnamePattern($_SERVER['SERVER_NAME']) , 
+		$this->getHostnamePattern("httpbin.org"),
+		];
 
 		//To make a user enter a captcha for specified website(s) "archive.org"
 		$this->captchasitesz = 
@@ -55,10 +69,6 @@ class Proxy {
 		//Set to false to allow sites on the local network (where PocketProxy is running) to be proxied.
 		$this->disallowLocal = true;
 
-		//Set to false to report the client machine's IP address to proxied sites via the HTTP `x-forwarded-for` header.
-		//Setting to false may improve compatibility with some sites, but also exposes more information about end users to proxied sites.
-		$this->anonymize = true;
-
 		//Start/default URL that that will be proxied when PocketProxy is first loaded in a browser/accessed directly with no URL to proxy.
 		//If empty, PocketProxy will show its own landing page.
 		$this->startURL = "";
@@ -70,8 +80,8 @@ class Proxy {
 		//and is proxied when pressing the 'Proxy It!' button on the landing page if its URL form is left blank.
 		$this->landingExampleURL = "https://example.net";
 		
-		//To protect Privacy, change this! rand() used to prevent any malicious user from snooping logs of unconfigured instances! But be warned, this will be spammy
-		$this->blacklistlog = "logxzx/".rand()."captchablacklist.log";
+		//To protect Privacy, change this! Logging will be DISABLED until this variable is changed
+		$this->blacklistlog = "logxzx/captchablacklist.log";
 
 		$this->requiredExtensions = ["curl", "mbstring", "xml"];
 
@@ -79,8 +89,8 @@ class Proxy {
 		$this->prefixHost = $_SERVER["HTTP_HOST"];
 		$this->prefixPort = "";
 		$this->prefixHost = strpos($this->prefixHost, ":") ? implode(":", explode(":", $_SERVER["HTTP_HOST"], -1)) : $this->prefixHost;
-		define("PROXY_PREFIX", $this->httpvariable . (isset($_SERVER["HTTPS"]) ? "" : "") . "://" . $this->prefixHost . "" //.$prefixPort //was removed because it displayed port 80 and i haven't fixed it yet, will need uncommented if you are on a port other than :80
-		 . $_SERVER["SCRIPT_NAME"] . "?");
+		define("PROXY_PREFIX", $this->httpvariable . (isset($_SERVER["HTTPS"]) ? "" : "") . "://" . $this->prefixHost . 
+			($_SERVER['SERVER_PORT'] != 80 ? ':' . $_SERVER['SERVER_PORT'] : '') . $_SERVER["SCRIPT_NAME"] . "?");
 
 		if (version_compare(PHP_VERSION, "5.4.7", "<")) {
 			die("PocketProxy requires PHP version 5.4.7 or later.");
@@ -108,20 +118,27 @@ class Proxy {
 	}
 
 	public function logcbl($url) {
-		if(file_exists($this->blacklistlog)){
-			$file = file($this->blacklistlog);
-			$line_count_pre = count($file);
-			$content = "" . $this->getUserIp() . "; #" . ".$url." . PHP_EOL; //".$url."
-			$file[] = $content;
-			$line_count_post = count(array_unique($file));
-			unset($file);
-			if ($line_count_post > $line_count_pre) {
-				//Note: this isn't going to work as intended, to disallow duplicate results unless the url is the same, when . ".$url." is added;
-				//BUT because this is called whenever a invalid IP is used, it is useful to know what set it off, blacklisted url or invalid url!
-				file_put_contents($this->blacklistlog, "" . $this->getUserIp() . "; #" . ".$url." . PHP_EOL, FILE_APPEND | LOCK_EX);
+		$logDirectory = dirname($this->blacklistlog);
+		
+		if (file_exists($this->blacklistlog) && is_readable($this->blacklistlog) && is_writable($this->blacklistlog) && is_dir($logDirectory) && is_writable($logDirectory)) {
+			// Check if the blacklist log file is not the default value
+			if ($this->blacklistlog !== "logxzx/captchablacklist.log") {
+				// Read the contents of the blacklist log file
+				$file = file($this->blacklistlog);
+				$line_count_pre = count($file);
+				// Construct the content to be logged
+				$content = $this->getUserIp() . "; #" . $url . PHP_EOL;
+				// Check if the URL is not already logged to prevent duplicates
+				if (!in_array($content, $file)) {
+					// Append the content to the file
+					file_put_contents($this->blacklistlog, $content, FILE_APPEND | LOCK_EX);
+				}
+				// Release the file handle
+				unset($file);
 			}
 		}
 	}
+	
 	//Validates a URL against the whitelist
 	public function passesWhitelist($url) {
 		if (count($this->whitelistPatterns) === 0) {
@@ -221,13 +238,15 @@ class Proxy {
 		return $removedKeys;
 	}
 
+
 	//Makes an HTTP request via cURL, using request data that was passed directly to this script.
 	public function makeRequest($url) {
 		//Tell cURL to make the request using the brower's user-agent if there is one, or a fallback user-agent otherwise.
 		$user_agent = $_SERVER["HTTP_USER_AGENT"];
 		if (empty($user_agent)) {
-			$user_agent = "Mozilla/5.0 (compatible; PocketProxy)";
+			$user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.3";
 		}
+		
 		$ch = curl_init();
 		curl_setopt($ch, CURLOPT_USERAGENT, $user_agent);
 
@@ -237,8 +256,17 @@ class Proxy {
 		//...but let cURL set some headers on its own.
 		$removedHeaders = $this->removeKeys($browserRequestHeaders, [
 		// "Accept-Encoding", // Removed because it gave me issues! I don't know why yet, i assume a php gzip misconfiguration//Throw away the browser's Accept-Encoding header if any and let cURL make the request using gzip if possible.
-		"Content-Length", "permissions-policy", "strict-transport-security", "report-to", "Host", "x-content-type-options", "cross-origin-opener-policy-report-only", "content-security-policy", "x-frame-options", "x-robots-tag", "x-xss-protection", "X-Frame-Options", //Added but not necessary it seems
-		"Origin", ]);
+		"Content-Length", "permissions-policy", 
+		"strict-transport-security", "report-to", "Host", 
+		"x-content-type-options", "cross-origin-opener-policy-report-only", 
+		"content-security-policy", "x-frame-options", "x-robots-tag", 
+		"x-xss-protection", "X-Frame-Options", "Origin", 
+		"Client-IP", "X-Real-IP", "X-Forwarded-For",
+		"HTTP_CF_CONNECTING_IP", "REMOTE_ADDR", "HTTP_X_FORWARDED_FOR", "HTTP_CLIENT_IP",
+		"X-Forwarded-Host", "HTTP_X_REAL_IP", "HTTP_VIA", "Forwarded", "CF-Connecting-IP", "X-Cluster-Client-Ip",
+		"X-Forwarded-Server", "X-ProxyUser-Ip", "X-Real-Host", "X-Original-URL", "X-Original-Forwarded-For",
+		"X-Client-IP", "X-Originating-IP", "X-User-IP", "X-Remote-Addr",
+		]);
 
 		$removedHeaders = array_map("strtolower", $removedHeaders);
 
@@ -247,11 +275,11 @@ class Proxy {
 		//indexed array of header strings to be passed to cURL.
 		$curlRequestHeaders = [];
 		foreach ($browserRequestHeaders as $name => $value) {
-			$curlRequestHeaders[] = $name . ": " . $value;
+			if (!in_array(strtolower($name), $removedHeaders)) {
+				$curlRequestHeaders[] = $name . ": " . $value;
+			}
 		}
-		if (!$this->anonymize) {
-			$curlRequestHeaders[] = "X-Forwarded-For: " . $_SERVER["REMOTE_ADDR"];
-		}
+		
 		//Any `origin` header sent by the browser will refer to the proxy itself.
 		//If an `origin` header is present in the request, rewrite it to point to the correct origin.
 		if (in_array("origin", $removedHeaders)) {
@@ -344,14 +372,50 @@ class Proxy {
 		return $scheme . "://" . $abs; //Absolute URL is ready.
 		
 	}
+	
+	//Convert a memory limit value to bytes.
+	public function memoryLimitToBytes($val) {
+		$val = trim($val);
+
+		// Check if the value is purely numeric, which means it's already in bytes
+		if (is_numeric($val)) {
+			return (int)$val;
+		}
+
+		// Regular expression to separate the number from the unit
+		if (preg_match('/^(\d+)([gmk])$/i', $val, $matches)) { // Update here
+			$value = (int)$matches[1];
+			$unit = strtolower($matches[2]);
+
+			switch ($unit) {
+				case 'g':
+					return $value * 1024 * 1024 * 1024;
+				case 'm':
+					return $value * 1024 * 1024;
+				case 'k':
+					return $value * 1024;
+			}
+		}
+
+		// If the input doesn't match expected patterns, throw an exception
+		throw new InvalidArgumentException("Invalid memory limit format: {$val}");
+	}
 
 	//Proxify contents of url() references in blocks of CSS text.
 	public function proxifyCSS($css, $baseURL) {
-		// Add a "url()" wrapper to any CSS @import rules that only specify a URL without the wrapper,
-		// so that they're proxified when searching for "url()" wrappers below.
+		$memoryLimit = ini_get('memory_limit');
+		// If memory limit is set to -1 (unlimited), manually set it to 1GB for our checks
+		$memoryLimitBytes = ($memoryLimit == -1) ? $this->memoryLimitToBytes('1G') : $this->memoryLimitToBytes($memoryLimit);
+		$safeMemoryLimit = $memoryLimitBytes * 0.8; // Stay 20% below the memory limit
+
 		$sourceLines = explode("\n", $css);
 		$normalizedLines = [];
 		foreach ($sourceLines as $line) {
+			if (memory_get_usage() > $safeMemoryLimit) {
+				// Memory limit nearing exhaustion, stop processing and return the original CSS
+				return $css;
+			}
+
 			if (preg_match("/@import\s+url/i", $line) || preg_match("/@font-face/i", $line)) {
 				$normalizedLines[] = $line;
 			} else {
@@ -361,7 +425,14 @@ class Proxy {
 			}
 		}
 		$normalizedCSS = implode("\n", $normalizedLines);
-		return preg_replace_callback("/url\((.*?)\)/i", function ($matches) use ($baseURL) {
+
+		// Perform the final replacement with a memory check
+		$processedCSS = preg_replace_callback("/url\((.*?)\)/i", function ($matches) use ($baseURL, $safeMemoryLimit) {
+			if (memory_get_usage() > $safeMemoryLimit) {
+				// If this point is reached, it's too late to return the original CSS without partial processing,
+				return $matches[0]; // Return the match unchanged
+			}
+
 			$url = $matches[1];
 			// Remove any surrounding single or double quotes from the URL so it can be passed to rel2abs - the quotes are optional in CSS
 			// Assume that if there is a leading quote then there should be a trailing quote, so just use trim() to remove them
@@ -376,6 +447,8 @@ class Proxy {
 			} // The URL isn't an HTTP URL but is actual binary data. Don't proxify it.
 			return "url(" . PROXY_PREFIX . $this->rel2abs($url, $baseURL) . ")";
 		}, $normalizedCSS);
+		
+		return $processedCSS ? $processedCSS : $css;
 	}
 	
 	//Added to prevent empty responses and remove php warning codes
@@ -430,7 +503,12 @@ $html = "
 </body>
 </html>
 ";
-ob_start("ob_gzhandler");
+
+if (function_exists('ob_gzhandler')) {
+    ob_start("ob_gzhandler");
+} else {
+	ob_start();
+}
 
 if (!function_exists("getallheaders")) {
 	//Adapted from http://www.php.net/manual/en/function.getallheaders.php#99814
@@ -461,11 +539,21 @@ else {
 		
 		$url = $formAction . "?" . http_build_query($queryParams);
 	}
-	else {
-		$url = substr($_SERVER["REQUEST_URI"], strlen($_SERVER["SCRIPT_NAME"]) + 1); // this used to be a issue
-		
+	else { //This now allows pocketProxy.php to be index.php!
+		$parsedUri = parse_url($_SERVER["REQUEST_URI"]);
+		$url = isset($parsedUri['query']) ? '?' . $parsedUri['query'] : '';
+		if (substr($url, 0, 1) === '?') {
+			$url = substr($url, 1);
+		}
 	}
 }
+
+if (function_exists('ob_gzhandler')) {
+    ob_start("ob_gzhandler");
+} else { 
+	ob_start();
+}
+
 if (empty($url)) {
 	if (empty($proxy->startURL)) {
 		die($html);
@@ -491,7 +579,6 @@ foreach ($proxy->captchaua as $uaString) {
 		break;
 	}
 }
-echo "<!-- $variable1 -->"; 
 
 // Set session configuration
 ini_set('session.cookie_secure', '1'); // Enforce secure cookie handling over HTTPS
@@ -500,10 +587,8 @@ ini_set('session.cookie_httponly', '1'); // Prevent client-side script access to
 // Start session
 session_start();
 
-if (in_array($variable1, $proxy->captchasitesz) || $matchesCaptchaUA) {
-	if (!extension_loaded("gd")) {
-				die("PocketProxy requires PHP's \"" . "gd" . "\" extension for Captcha functionality. Please install/enable it on your server and try again.");
-	}
+if ((in_array($variable1, $proxy->captchasitesz) || $matchesCaptchaUA) &&
+    (class_exists('Gregwar\\Captcha\\PhraseBuilder') && class_exists('Gregwar\\Captcha\\CaptchaBuilder')) && extension_loaded("gd")) {
 	
 	$variable2 = false;
 	$variable3 = false;
@@ -514,7 +599,7 @@ if (in_array($variable1, $proxy->captchasitesz) || $matchesCaptchaUA) {
 		{
 			$ehrx = "<h1>Captcha is not valid!</h1>";
 		}
-		else if (PhraseBuilder::comparePhrases($_SESSION["phrase"], $_POST["phrase"])) { //PHP Warning:  Undefined array key "phrase" 
+		else if (Gregwar\Captcha\PhraseBuilder::comparePhrases($_SESSION["phrase"], $_POST["phrase"])) { //PHP Warning:  Undefined array key "phrase" 
 			$variable2 = true;
 
 			if (!isset($_SESSION["CREATED"])) {
@@ -555,8 +640,8 @@ if (in_array($variable1, $proxy->captchasitesz) || $matchesCaptchaUA) {
 		<form method="post">
 			Please Copy the Captcha (30 minute Sessions)
 			<?php
-			$phraseBuilder = new PhraseBuilder(4);
-			$captcha = new CaptchaBuilder(null, $phraseBuilder);
+			$phraseBuilder = new Gregwar\Captcha\PhraseBuilder(4);
+			$captcha = new Gregwar\Captcha\CaptchaBuilder(null, $phraseBuilder);
 			$captcha->build();
 			$_SESSION["phrase"] = $captcha->getPhrase();
 			?>
@@ -588,6 +673,7 @@ if (empty($scheme)) {
 	}
 	else {
 		//Assume that any supplied URLs without a scheme (just a host) are HTTP URLs.
+		// This may cause issues.
 		$url = "http://" . $url;
 	}
 }
@@ -600,6 +686,11 @@ $url = str_replace(array('?http://','?https://'), array('http://','https://'), $
 
 
 if (!$proxy->isValidURL($url)) {
+	if (preg_match($proxy->getHostnamePattern($_SERVER['HTTP_HOST']), $url)) {
+		header('Content-Type: text/plain');
+		die(''); //prevent some errors when urls are mishandled and sent to ORIGINDOMAIN.COM/pocketproxy.php?ORIGINDOMAIN.COM
+	}
+	
 	$proxy->logcbl($url);
 	die("Error: The requested URL was disallowed by the server administrator.");
 }
@@ -1499,13 +1590,10 @@ EOF
 	   $link->setAttribute('href', preg_replace(array('/https\:\/(?!\/)/', '/http\:\/(?!\/)/'), array('https://', 'http://'), $link->getAttribute('href')));
 	}
 	
-	echo "<!-- Proxified page constructed by PocketProxy -->\n" . $doc->saveHTML($doc->documentElement);//Should fix my UTF-8 ecoding error https://stackoverflow.com/questions/8218230/php-domdocument-loadhtml-not-encoding-utf-8-correctly
+	echo $doc->saveHTML($doc->documentElement); //Fixed a UTF-8 ecoding error https://stackoverflow.com/questions/8218230/php-domdocument-loadhtml-not-encoding-utf-8-correctly
 }
 elseif (stripos($contentType, "text/css") !== false) {
 	//This is CSS, so proxify url() references.
-	//Trying to figure out why "PHP exhausted 6383730688 bytes , trying to allocate more 2093393984 bytes" ... 
-	//Memory leak or big downloads, not sure, but it's riskier for the end user to have this disabled. 
-	//Will have to fix very soon! Forgot it was an issue!
 	echo $proxy->proxifyCSS($responseBody, $url);
 
 	header("Content-Type: text/css");
