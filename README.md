@@ -63,7 +63,6 @@ PocketProxy has several known limitations. Some of them may be fixed in future r
 
 * `<object>` tags are not handled
 * YouTube does not work (try [youtubeunblocked.live](youtubeunblocked.live))
-* No cookie support
 * Many MANY websites can display broken qualities when they are javascript dependant.
 * Probably more, but as I come across limitations I tend to forget them before writing them down
 
