@@ -3,7 +3,7 @@
 
 $captchascript = "Captcha/AIO-Captcha.php";
 if (file_exists($captchascript)) {
-    include($captchascript);
+	include_once $captchascript;
 }
 
 
@@ -17,7 +17,8 @@ if (file_exists($captchascript)) {
  */
 
 class Proxy {
-	public $a, $maxdl, $forceCORS, $blacklistlog, $cce, $prefixPort, $prefixHost, $blacklistPatterns, $captchasitesz, $httpvariable, $whitelistPatterns, $disallowLocal, $startURL, $landingExampleURL, $requiredExtensions;
+	public $a, $maxdl, $forceCORS, $blacklistlog, $cce, $prefixPort, $prefixHost, $blacklistPatterns, $captchasitesz,
+	$httpvariable, $whitelistPatterns, $disallowLocal, $startURL, $landingExampleURL, $requiredExtensions;
 	public function __construct() {
 		//To allow proxying any URL, set $whitelistPatterns to an empty array (the default).
 		$this->whitelistPatterns = [
@@ -28,32 +29,32 @@ class Proxy {
 
 		$this->blacklistPatterns = [
 		//$this->getHostnamePattern("example.net")
-		$this->getHostnamePattern($_SERVER['HTTP_HOST']) , $this->getHostnamePattern($_SERVER['SERVER_NAME']) , 
+		$this->getHostnamePattern($_SERVER['HTTP_HOST']) , $this->getHostnamePattern($_SERVER['SERVER_NAME']) ,
 		$this->getHostnamePattern("httpbin.org"),
 		];
 
 		//To make a user enter a captcha for specified website(s) "archive.org"
-		$this->captchasitesz = 
+		$this->captchasitesz =
 		["archive.ph", "archive.md", "archive.is", "archive.li", "archive.vn", "archive.org", "archive.com"];
 		
-		$this->captchaua = ["Amazonbot/0.1", "Googlebot/2.1", "Bingbot/2.0", "Slackbot/1.0", "Facebookbot/2.1", "Twitterbot/2.0", 
-		"LinkedInBot/2.0", "Pinterest/0.1", "Tumblr/1.0", "Applebot/1.0", "WhatsApp/2.0", "Skypebot/1.0", "Snapchat/1.0", "Discordbot/2.0", 
-		"Redditbot/1.0", "Yandexbot/3.0", "Ahrefsbot/5.0", "Majestic-12/1.0", "CommonCrawl/2.0", "SemrushBot/3.0", "Baiduspider/2.0", 
-		"Exabot/1.0", "Sogou web spider/2.0", "DuckDuckGo/1.0", "Blekko/1.0", "BingPreview/1.0", "Ecosia/1.0", "Seznambot/3.0", 
-		"Xenu Link Sleuth/2.0", "Wayback Machine/3.0", "Wget/1.0", "Curl/7.0", "Python-urllib/3.0", "Ruby/2.0", "Java/1.0", "MJ12bot/1.0", 
+		$this->captchaua = ["Amazonbot/0.1", "Googlebot/2.1", "Bingbot/2.0", "Slackbot/1.0", "Facebookbot/2.1", "Twitterbot/2.0",
+		"LinkedInBot/2.0", "Pinterest/0.1", "Tumblr/1.0", "Applebot/1.0", "WhatsApp/2.0", "Skypebot/1.0", "Snapchat/1.0", "Discordbot/2.0",
+		"Redditbot/1.0", "Yandexbot/3.0", "Ahrefsbot/5.0", "Majestic-12/1.0", "CommonCrawl/2.0", "SemrushBot/3.0", "Baiduspider/2.0",
+		"Exabot/1.0", "Sogou web spider/2.0", "DuckDuckGo/1.0", "Blekko/1.0", "BingPreview/1.0", "Ecosia/1.0", "Seznambot/3.0",
+		"Xenu Link Sleuth/2.0", "Wayback Machine/3.0", "Wget/1.0", "Curl/7.0", "Python-urllib/3.0", "Ruby/2.0", "Java/1.0", "MJ12bot/1.0",
 		"rogerbot/2.0", "Exabot/3.0", "Ezooms/1.0", "DotBot/1.0", "YandexImages/3.0", "Yahoo! Slurp/3.0", "Barkrowler/1.0", "CCBot/2.0", "
-		SemrushBot/2.0", "ia_archiver/2.0", "TurnitinBot/2.0", "BLEXBot/1.0", "AdsBot-Google/2.0", "Gigabot/3.0", "Yeti/1.0", "ZoominfoBot/1.0", 
-		"Nutch/1.0", "GrapeshotCrawler/2.0", "oBot/2.0", "Mail.RU_Bot/2.0", "BingPreview/2.0", "Screaming Frog SEO Spider/1.0", 
-		"magpie-crawler/1.0", "Baidu Spider/3.0", "LinkedInBot/1.0", "Curl/8.0", "PHP/7.0", "Python/3.0", "Go-http-client/1.0", 
-		"Java/11.0", "Ruby/3.0", "RamblerMail/1.0", "SeznamBot/1.0", "DuckDuckBot/1.0", "rogerbot/3.0", "YandexBot/4.0", "PaperLiBot/2.0", 
-		"Barkrowler/2.0", "Sogou web spider/3.0", "Wget/2.0", "libwww-perl/6.0", "PHP/8.0", "AhrefsBot/6.0", "BUbiNG/7.0", 
-		"Dataprovider.com/8.0", "Cortex/9.0", "DomainStatsBot/10.0", "SiteBot/11.0", "Qwantify/12.0", "AiHitBot/13.0", 
-		"Seekport Crawler/14.0", "PiplBot/15.0", "Zenserp/16.0", "g00g1e.net/17.0", "PaperBot/18.0", "YippyBot/19.0", "DuckDuckGo/20.0", 
-		"SputnikBot/21.0", "LinksSpyder/22.0", "SerendeputyBot/23.0", "PingdomBot/24.0", "Hatena Crawler/25.0", 
-		"Screaming Frog SEO Spider/26.0", "NaverBot/27.0", "Bingbot/28.0", "DotBot/2.0", "SeznamBot/2.0", "MJ12bot/2.0", "BLEXBot/2.0", 
-		"Sogou web spider/4.0", "Gigabot/4.0", "YandexBot/5.0", "Yahoo! Slurp/4.0", "SemrushBot/3.0", "TurnitinBot/3.0", "AdsBot-Google/3.0", 
-		"Googlebot-Image/1.0", "BingPreview/3.0", "Qwantify/2.0", "Curl/9.0", "Python/4.0", "Java/12.0", "Ruby/4.0", 
-		"RamblerMail/2.0", "oBot/3.0", "Mail.RU_Bot/3.0", "Screaming Frog SEO Spider/2.0", "magpie-crawler/2.0", "Baidu Spider/4.0", 
+		SemrushBot/2.0", "ia_archiver/2.0", "TurnitinBot/2.0", "BLEXBot/1.0", "AdsBot-Google/2.0", "Gigabot/3.0", "Yeti/1.0", "ZoominfoBot/1.0",
+		"Nutch/1.0", "GrapeshotCrawler/2.0", "oBot/2.0", "Mail.RU_Bot/2.0", "BingPreview/2.0", "Screaming Frog SEO Spider/1.0",
+		"magpie-crawler/1.0", "Baidu Spider/3.0", "LinkedInBot/1.0", "Curl/8.0", "PHP/7.0", "Python/3.0", "Go-http-client/1.0",
+		"Java/11.0", "Ruby/3.0", "RamblerMail/1.0", "SeznamBot/1.0", "DuckDuckBot/1.0", "rogerbot/3.0", "YandexBot/4.0", "PaperLiBot/2.0",
+		"Barkrowler/2.0", "Sogou web spider/3.0", "Wget/2.0", "libwww-perl/6.0", "PHP/8.0", "AhrefsBot/6.0", "BUbiNG/7.0",
+		"Dataprovider.com/8.0", "Cortex/9.0", "DomainStatsBot/10.0", "SiteBot/11.0", "Qwantify/12.0", "AiHitBot/13.0",
+		"Seekport Crawler/14.0", "PiplBot/15.0", "Zenserp/16.0", "g00g1e.net/17.0", "PaperBot/18.0", "YippyBot/19.0", "DuckDuckGo/20.0",
+		"SputnikBot/21.0", "LinksSpyder/22.0", "SerendeputyBot/23.0", "PingdomBot/24.0", "Hatena Crawler/25.0",
+		"Screaming Frog SEO Spider/26.0", "NaverBot/27.0", "Bingbot/28.0", "DotBot/2.0", "SeznamBot/2.0", "MJ12bot/2.0", "BLEXBot/2.0",
+		"Sogou web spider/4.0", "Gigabot/4.0", "YandexBot/5.0", "Yahoo! Slurp/4.0", "SemrushBot/3.0", "TurnitinBot/3.0", "AdsBot-Google/3.0",
+		"Googlebot-Image/1.0", "BingPreview/3.0", "Qwantify/2.0", "Curl/9.0", "Python/4.0", "Java/12.0", "Ruby/4.0",
+		"RamblerMail/2.0", "oBot/3.0", "Mail.RU_Bot/3.0", "Screaming Frog SEO Spider/2.0", "magpie-crawler/2.0", "Baidu Spider/4.0",
 		"LinkedInBot/2.0", "PHP/9.0", "Go-http-client/2.0", "Googlebot-Mobile/1.0", "Bingbot-Mobile/1.0"] ;
 
 		// If you have a HTTPS:// website,  you need to set this to "https" otherwise there will be bugs and content(css/js) won't load properly!
@@ -89,7 +90,7 @@ class Proxy {
 		$this->prefixHost = $_SERVER["HTTP_HOST"];
 		$this->prefixPort = "";
 		$this->prefixHost = strpos($this->prefixHost, ":") ? implode(":", explode(":", $_SERVER["HTTP_HOST"], -1)) : $this->prefixHost;
-		define("PROXY_PREFIX", $this->httpvariable . (isset($_SERVER["HTTPS"]) ? "" : "") . "://" . $this->prefixHost . 
+		define("PROXY_PREFIX", $this->httpvariable . (isset($_SERVER["HTTPS"]) ? "" : "") . "://" . $this->prefixHost .
 			($_SERVER['SERVER_PORT'] != 80 ? ':' . $_SERVER['SERVER_PORT'] : '') . $_SERVER["SCRIPT_NAME"] . "?");
 
 		if (version_compare(PHP_VERSION, "5.4.7", "<")) {
@@ -103,7 +104,7 @@ class Proxy {
 		}
 	}
 	//Remove the http(s):// and the /file.php?query=here from a url (and subdomains too)
-	public function get_domain($url) {
+	public function getDomain($url) {
 		$domain = parse_url((strpos($url, "://") === false ? "http://" : "") . trim($url) , PHP_URL_HOST);
 		if (preg_match('/[a-z0-9][a-z0-9\-]{0,63}\.[a-z]{2,6}(\.[a-z]{1,2})?$/i', $domain, $match)) {
 			return $match[0];
@@ -120,22 +121,21 @@ class Proxy {
 	public function logcbl($url) {
 		$logDirectory = dirname($this->blacklistlog);
 		
-		if (file_exists($this->blacklistlog) && is_readable($this->blacklistlog) && is_writable($this->blacklistlog) && is_dir($logDirectory) && is_writable($logDirectory)) {
-			// Check if the blacklist log file is not the default value
-			if ($this->blacklistlog !== "logxzx/captchablacklist.log") {
-				// Read the contents of the blacklist log file
-				$file = file($this->blacklistlog);
-				$line_count_pre = count($file);
-				// Construct the content to be logged
-				$content = $this->getUserIp() . "; #" . $url . PHP_EOL;
-				// Check if the URL is not already logged to prevent duplicates
-				if (!in_array($content, $file)) {
-					// Append the content to the file
-					file_put_contents($this->blacklistlog, $content, FILE_APPEND | LOCK_EX);
-				}
-				// Release the file handle
-				unset($file);
+		if (file_exists($this->blacklistlog) && is_readable($this->blacklistlog) 
+			&& is_writable($this->blacklistlog) && is_dir($logDirectory) && is_writable($logDirectory)
+			&& $this->blacklistlog !== "logxzx/captchablacklist.log") {
+			// Read the contents of the blacklist log file
+			$file = file($this->blacklistlog);
+			$line_count_pre = count($file);
+			// Construct the content to be logged
+			$content = $this->getUserIp() . "; #" . $url . PHP_EOL;
+			// Check if the URL is not already logged to prevent duplicates
+			if (!in_array($content, $file)) {
+				// Append the content to the file
+				file_put_contents($this->blacklistlog, $content, FILE_APPEND | LOCK_EX);
 			}
+			// Release the file handle
+			unset($file);
 		}
 	}
 	
@@ -179,7 +179,7 @@ class Proxy {
 			$dnsResult = @dns_get_record($host, DNS_A + DNS_AAAA); // bug warning code https://bugs.php.net/bug.php?id=73149 , supressed with '@'
 			
 			if(!is_bool($dnsResult)){//Fixes my array_map error. Doesn't fix the blank page when the domain isn't resolvable.
-				$ips = array_map(function ($dnsRecord) { 
+				$ips = array_map(function ($dnsRecord) {
 					return $dnsRecord["type"] == "A" ? $dnsRecord["ip"] : $dnsRecord["ipv6"];
 				}
 				, $dnsResult);
@@ -256,11 +256,11 @@ class Proxy {
 		//...but let cURL set some headers on its own.
 		$removedHeaders = $this->removeKeys($browserRequestHeaders, [
 		// "Accept-Encoding", // Removed because it gave me issues! I don't know why yet, i assume a php gzip misconfiguration//Throw away the browser's Accept-Encoding header if any and let cURL make the request using gzip if possible.
-		"Content-Length", "permissions-policy", 
-		"strict-transport-security", "report-to", "Host", 
-		"x-content-type-options", "cross-origin-opener-policy-report-only", 
-		"content-security-policy", "x-frame-options", "x-robots-tag", 
-		"x-xss-protection", "X-Frame-Options", "Origin", 
+		"Content-Length", "permissions-policy",
+		"strict-transport-security", "report-to", "Host",
+		"x-content-type-options", "cross-origin-opener-policy-report-only",
+		"content-security-policy", "x-frame-options", "x-robots-tag",
+		"x-xss-protection", "X-Frame-Options", "Origin",
 		"Client-IP", "X-Real-IP", "X-Forwarded-For",
 		"HTTP_CF_CONNECTING_IP", "REMOTE_ADDR", "HTTP_X_FORWARDED_FOR", "HTTP_CLIENT_IP",
 		"X-Forwarded-Host", "HTTP_X_REAL_IP", "HTTP_VIA", "Forwarded", "CF-Connecting-IP", "X-Cluster-Client-Ip",
@@ -341,7 +341,7 @@ class Proxy {
 	}
 
 	//Converts relative URLs to absolute ones, given a base URL.
-	//Modified version of code found at http://nashruddin.com/PHP_Script_for_Converting_Relative_to_Absolute_URL
+	//Modified version of code found at https://web.archive.org/web/20121014113424/https://nashruddin.com/PHP_Script_for_Converting_Relative_to_Absolute_URL
 	public function rel2abs($rel, $base) {
 		if (empty($rel)) {
 			$rel = ".";
@@ -483,8 +483,7 @@ class Proxy {
 			
 		}
 		, $sources);
-		$proxifiedSrcset = implode(", ", $proxifiedSources); //Recombine the sources into a single "srcset"
-		return $proxifiedSrcset;
+		return implode(", ", $proxifiedSources); //Recombine the sources into a single "srcset"
 	}
 }
 $proxy = new Proxy();
@@ -505,7 +504,7 @@ $html = "
 ";
 
 if (function_exists('ob_gzhandler')) {
-    ob_start("ob_gzhandler");
+	ob_start("ob_gzhandler");
 } else {
 	ob_start();
 }
@@ -549,8 +548,8 @@ else {
 }
 
 if (function_exists('ob_gzhandler')) {
-    ob_start("ob_gzhandler");
-} else { 
+	ob_start("ob_gzhandler");
+} else {
 	ob_start();
 }
 
@@ -570,7 +569,7 @@ elseif (strpos($url, ":/") !== strpos($url, "://")) {
 }
 
 // Added for captcha functionality
-$variable1 = isset(parse_url($url)["host"]) ? $proxy->get_domain(parse_url($url)["host"]) : "";
+$variable1 = isset(parse_url($url)["host"]) ? $proxy->getDomain(parse_url($url)["host"]) : "";
 $userAgent = $_SERVER['HTTP_USER_AGENT'];
 $matchesCaptchaUA = false;
 foreach ($proxy->captchaua as $uaString) {
@@ -588,7 +587,7 @@ ini_set('session.cookie_httponly', '1'); // Prevent client-side script access to
 session_start();
 
 if ((in_array($variable1, $proxy->captchasitesz) || $matchesCaptchaUA) &&
-    (class_exists('Gregwar\\Captcha\\PhraseBuilder') && class_exists('Gregwar\\Captcha\\CaptchaBuilder')) && extension_loaded("gd")) {
+	(class_exists('Gregwar\\Captcha\\PhraseBuilder') && class_exists('Gregwar\\Captcha\\CaptchaBuilder')) && extension_loaded("gd")) {
 	
 	$variable2 = false;
 	$variable3 = false;
@@ -599,7 +598,7 @@ if ((in_array($variable1, $proxy->captchasitesz) || $matchesCaptchaUA) &&
 		{
 			$ehrx = "<h1>Captcha is not valid!</h1>";
 		}
-		else if (Gregwar\Captcha\PhraseBuilder::comparePhrases($_SESSION["phrase"], $_POST["phrase"])) { //PHP Warning:  Undefined array key "phrase" 
+		elseif (Gregwar\Captcha\PhraseBuilder::comparePhrases($_SESSION["phrase"], $_POST["phrase"])) { //PHP Warning:  Undefined array key "phrase"
 			$variable2 = true;
 
 			if (!isset($_SESSION["CREATED"])) {
@@ -789,7 +788,7 @@ if (stripos($contentType, "text/html") !== false) {
 	I don't know if I ever fixed these or not! I think I just added "@" to supress it!
 	
 	//HP message: PHP Warning:  DOMDocument::loadHTML(): Tag nav invalid in Entity
-	//PHP message: PHP Warning:  DOMDocument::loadHTML(): Tag footer invalid in Entity, line: 349 in /var/www/html/pocketproxy.php on line 663" while reading response header from upstream, 
+	//PHP message: PHP Warning:  DOMDocument::loadHTML(): Tag footer invalid in Entity, line: 349 in /var/www/html/pocketproxy.php on line 663" while reading response header from upstream,
 	
 	*/
 	
@@ -922,7 +921,7 @@ if (stripos($contentType, "text/html") !== false) {
 	// Ensuring compatibility with DOMParser and Object.defineProperty.
 	if (typeof DOMParser === "undefined") {
 		console.error("DOMParser is not supported in this browser.");
-	} else if (typeof Object.defineProperty === "undefined") {
+	} elseif (typeof Object.defineProperty === "undefined") {
 		console.error("Object.defineProperty is not supported in this browser.");
 	} else {
 		// Overriding innerHTML and outerHTML to modify inline scripts and URLs.
@@ -980,7 +979,7 @@ if (stripos($contentType, "text/html") !== false) {
 			window.fetch = function(url, init) {
 				if (typeof url === 'string') {
 					arguments[0] = modifyUrl(url);
-				} else if (typeof url === 'object' && url.url) {
+				} elseif (typeof url === 'object' && url.url) {
 					url.url = modifyUrl(url.url);
 				}
 				return originalFetch.apply(this, arguments);
@@ -1116,7 +1115,7 @@ if (stripos($contentType, "text/html") !== false) {
 	}
 	
 	
-	//Rewrite $.ajax 
+	//Rewrite $.ajax
 	if (typeof jQuery !== 'undefined') {
 		(function($) {
 			var originalAjax = $.ajax;
@@ -1323,7 +1322,7 @@ if (stripos($contentType, "text/html") !== false) {
 				// Check if input is a string and not a local or blob URL before modification
 				if (typeof input === 'string' && !input.startsWith('blob:') && !input.startsWith('/')) {
 					input = modifyUrl(input);
-				} else if (input instanceof Request && !input.url.startsWith('blob:') && !input.url.startsWith('/')) {
+				} elseif (input instanceof Request && !input.url.startsWith('blob:') && !input.url.startsWith('/')) {
 					// If input is a Request instance, create a new Request with modified URL, preserving the original request's properties
 					input = new originalRequest(modifyUrl(input.url), input);
 				}
@@ -1482,7 +1481,7 @@ if (stripos($contentType, "text/html") !== false) {
 	}
 
 	function rel2abs(base, href) { // RFC 3986
-		// Converts a relative URL to an absolute URL based on a base URL. 
+		// Converts a relative URL to an absolute URL based on a base URL.
 		try {
 			function removeDotSegments(input) {
 				var output = [];
@@ -1553,7 +1552,7 @@ if (stripos($contentType, "text/html") !== false) {
 						}
 					}
 				}
-			} else if (url instanceof Blob) {
+			} elseif (url instanceof Blob) {
 				// Convert Blob to data URL
 				const reader = new FileReader();
 				reader.readAsDataURL(url);
@@ -1604,7 +1603,7 @@ elseif(in_array($contentType, $compressibleMimeTypes)){
 	header('Content-Disposition: filename="'.basename(parse_url($url, PHP_URL_PATH).'"'));
 	echo $responseBody;
 }
-elseif (stripos($contentType, "multipart/form-data") !== false) { 
+elseif (stripos($contentType, "multipart/form-data") !== false) {
 	ob_end_clean();
 	//The problem here is that the boundary, something like boundary=----WebKitFormBoundaryyEmKNDsBKjB7QEqu never makes it into the Content-Type: header
 	echo $responseBody;
