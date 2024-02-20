@@ -90,7 +90,7 @@ class Proxy {
 		$this->prefixHost = $_SERVER["HTTP_HOST"];
 		$this->prefixPort = "";
 		$this->prefixHost = strpos($this->prefixHost, ":") ? implode(":", explode(":", $_SERVER["HTTP_HOST"], -1)) : $this->prefixHost;
-		define("PROXY_PREFIX", $this->httpvariable . (isset($_SERVER["HTTPS"]) ? "" : "") . "://" . $this->prefixHost .
+		define("PROXY_PREFIX", $this->httpvariable . "://" . $this->prefixHost .
 			($_SERVER['SERVER_PORT'] != 80 ? ':' . $_SERVER['SERVER_PORT'] : '') . $_SERVER["SCRIPT_NAME"] . "?");
 
 		if (version_compare(PHP_VERSION, "5.4.7", "<")) {
@@ -103,6 +103,7 @@ class Proxy {
 			}
 		}
 	}
+	
 	//Remove the http(s):// and the /file.php?query=here from a url (and subdomains too)
 	public function getDomain($url) {
 		$domain = parse_url((strpos($url, "://") === false ? "http://" : "") . trim($url) , PHP_URL_HOST);
@@ -193,6 +194,7 @@ class Proxy {
 		}
 		return false;
 	}
+	
 	//Helper function that determines whether to allow proxying of a given URL.
 	public function isValidURL($url) {
 		return $this->passesWhitelist($url) && $this->passesBlacklist($url) && ($this->disallowLocal ? !$this->isLocal($url) : true);
@@ -253,9 +255,9 @@ class Proxy {
 		//Get ready to proxy the browser's request headers...
 		$browserRequestHeaders = getallheaders();
 
-		//...but let cURL set some headers on its own.
+		//Let cURL set some headers on its own and strip away bad headers that reveal too much information!
 		$removedHeaders = $this->removeKeys($browserRequestHeaders, [
-		// "Accept-Encoding", // Removed because it gave me issues! I don't know why yet, i assume a php gzip misconfiguration//Throw away the browser's Accept-Encoding header if any and let cURL make the request using gzip if possible.
+		// "Accept-Encoding", // Removed because it gave me issues! I don't know why yet.
 		"Content-Length", "permissions-policy",
 		"strict-transport-security", "report-to", "Host",
 		"x-content-type-options", "cross-origin-opener-policy-report-only",
@@ -405,7 +407,7 @@ class Proxy {
 	public function proxifyCSS($css, $baseURL) {
 		$memoryLimit = ini_get('memory_limit');
 		// If memory limit is set to -1 (unlimited), manually set it to 1GB for our checks
-		$memoryLimitBytes = ($memoryLimit == -1) ? $this->memoryLimitToBytes('1G') : $this->memoryLimitToBytes($memoryLimit);
+		$memoryLimitBytes = ($memoryLimit == -1) ? $this->memoryLimitToBytes('128M') : $this->memoryLimitToBytes($memoryLimit);
 		$safeMemoryLimit = $memoryLimitBytes * 0.8; // Stay 20% below the memory limit
 
 		$sourceLines = explode("\n", $css);
@@ -545,12 +547,6 @@ else {
 			$url = substr($url, 1);
 		}
 	}
-}
-
-if (function_exists('ob_gzhandler')) {
-	ob_start("ob_gzhandler");
-} else {
-	ob_start();
 }
 
 if (empty($url)) {
@@ -725,6 +721,7 @@ foreach ($headerLines as $header) {
 		header($header, false);
 	}
 }
+			
 //Prevent robots from indexing proxified pages
 header("X-Robots-Tag: noindex, nofollow", true);
 
@@ -863,8 +860,7 @@ if (stripos($contentType, "text/html") !== false) {
 	//Uses code from these sources:
 	//http://stackoverflow.com/questions/7775767/javascript-overriding-xmlhttprequest-open
 	//https://gist.github.com/1088850
-	//TODO: This is obviously only useful for browsers that use XMLHttpRequest but
-	//it's better than nothing.
+	//TODO: implement more than just xmlhttp
 	$head = $xpath->query("//head")
 		->item(0);
 	$body = $xpath->query("//body")
@@ -875,7 +871,6 @@ if (stripos($contentType, "text/html") !== false) {
 	//insert some JavaScript at the top of whichever is available first.
 	//Protects against cases where the server sends a Content-Type of "text/html" when
 	//what's coming back is most likely not actually HTML.
-	//TODO: Do this check before attempting to do any sort of DOM parsing?
 	if ($prependElem != null) {
 		$proxyPrefix = PROXY_PREFIX;
 		$scriptElem = $doc->createElement("script", <<<EOF
@@ -1585,6 +1580,7 @@ EOF
 	}
 
 	//I noticed Google results were ?url=https:/ and not ?url=https:// causing them to not function
+	//This does not fix the root issue
 	foreach ($doc->getElementsByTagName('a') as $link) {
 	   $link->setAttribute('href', preg_replace(array('/https\:\/(?!\/)/', '/http\:\/(?!\/)/'), array('https://', 'http://'), $link->getAttribute('href')));
 	}
@@ -1605,7 +1601,7 @@ elseif(in_array($contentType, $compressibleMimeTypes)){
 }
 elseif (stripos($contentType, "multipart/form-data") !== false) {
 	ob_end_clean();
-	//The problem here is that the boundary, something like boundary=----WebKitFormBoundaryyEmKNDsBKjB7QEqu never makes it into the Content-Type: header
+	//Cannot declare content type, something like boundary=----WebKitFormBoundaryyEmKNDsBKjB7QEqu never makes it into the Content-Type: header
 	echo $responseBody;
 }
 else {
