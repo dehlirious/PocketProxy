@@ -598,7 +598,7 @@ if ((in_array($variable1, $proxy->captchasitesz) || $matchesCaptchaUA) &&
 		{
 			$ehrx = "<h1>Captcha is not valid!</h1>";
 		}
-		elseif (Gregwar\Captcha\PhraseBuilder::comparePhrases($_SESSION["phrase"], $_POST["phrase"])) { //PHP Warning:  Undefined array key "phrase"
+		else if (Gregwar\Captcha\PhraseBuilder::comparePhrases($_SESSION["phrase"], $_POST["phrase"])) { //PHP Warning:  Undefined array key "phrase"
 			$variable2 = true;
 
 			if (!isset($_SESSION["CREATED"])) {
@@ -921,7 +921,7 @@ if (stripos($contentType, "text/html") !== false) {
 	// Ensuring compatibility with DOMParser and Object.defineProperty.
 	if (typeof DOMParser === "undefined") {
 		console.error("DOMParser is not supported in this browser.");
-	} elseif (typeof Object.defineProperty === "undefined") {
+	} else if (typeof Object.defineProperty === "undefined") {
 		console.error("Object.defineProperty is not supported in this browser.");
 	} else {
 		// Overriding innerHTML and outerHTML to modify inline scripts and URLs.
@@ -979,7 +979,7 @@ if (stripos($contentType, "text/html") !== false) {
 			window.fetch = function(url, init) {
 				if (typeof url === 'string') {
 					arguments[0] = modifyUrl(url);
-				} elseif (typeof url === 'object' && url.url) {
+				} else if (typeof url === 'object' && url.url) {
 					url.url = modifyUrl(url.url);
 				}
 				return originalFetch.apply(this, arguments);
@@ -1322,7 +1322,7 @@ if (stripos($contentType, "text/html") !== false) {
 				// Check if input is a string and not a local or blob URL before modification
 				if (typeof input === 'string' && !input.startsWith('blob:') && !input.startsWith('/')) {
 					input = modifyUrl(input);
-				} elseif (input instanceof Request && !input.url.startsWith('blob:') && !input.url.startsWith('/')) {
+				} else if (input instanceof Request && !input.url.startsWith('blob:') && !input.url.startsWith('/')) {
 					// If input is a Request instance, create a new Request with modified URL, preserving the original request's properties
 					input = new originalRequest(modifyUrl(input.url), input);
 				}
@@ -1552,7 +1552,7 @@ if (stripos($contentType, "text/html") !== false) {
 						}
 					}
 				}
-			} elseif (url instanceof Blob) {
+			} else if (url instanceof Blob) {
 				// Convert Blob to data URL
 				const reader = new FileReader();
 				reader.readAsDataURL(url);
