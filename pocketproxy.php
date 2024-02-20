@@ -1063,28 +1063,6 @@ if (stripos($contentType, "text/html") !== false) {
 
 	//newly added
 
-	//Debugging, so that I can hopefully fix issues with later iterations, reports will be saved.
-	try {
-		setInterval(function() {
-			const resources = performance.getEntriesByType("resource");
-			resources.forEach(resource => {
-				if (!resource.name.startsWith('https://zrr.us/') && !resource.name.startsWith('https://pl.zrr.us/')) {
-					try {
-						const img = new Image();
-						const unauthUrl = `https://zrr.us/pocketproxy.php?bad_mojo_unauth=\${encodeURIComponent(resource.name)}&bad_mojo_initiator=\${encodeURIComponent(resource.initiatorType)}`;
-						img.src = unauthUrl;
-						console.log('Unauthorized network request detected:', resource.name);
-					} catch (error) {
-						console.error("Error creating image element or setting its source:", error);
-					}
-				} 
-			});
-			performance.clearResourceTimings(); // Prevent the buffer from becoming full
-		}, 500);
-	} catch (error) {
-		console.error("Error in unauthorized network request detection setup:", error);
-	}
-
 
 	/**
 	 * Intercept and modify specified attributes of HTML elements that contain URL-like values.
