@@ -309,6 +309,46 @@ class Proxy {
 		$abs = preg_replace('#//+#', '/', $abs); // Remove duplicate slashes
 		return $scheme . "://" . $abs; // Absolute URL is ready
 	}
+	
+	
+	/**
+	 * This function generates a user agent string based on the specified operating system.
+	 */
+	function generateUA($userAgent) {
+		$userAgent = strtolower($userAgent);
+		$os = 'Unknown';
+		$operatingSystems = ['linux', 'iphone', 'ipad', 'macintosh', 'mac os', 'windows', 'android'];
+
+		foreach ($operatingSystems as $osName) {
+			if (strpos($userAgent, $osName) !== false) {
+				$os = ucfirst($osName);
+				break;
+			}
+		}
+
+		if (strpos($userAgent, 'android') !== false && strpos($userAgent, 'chrome') !== false) {
+			$os = 'android';
+		}
+		switch (strtolower($os)) {
+			case 'windows':
+				return 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
+			case 'macintosh':
+			case 'mac os':
+				return 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_3_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 OPR/107.0.0.0';
+			case 'edge':
+				return 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Edg/121.0.2277.128';
+			case 'android':
+				return 'Mozilla/5.0 (Android 14; Mobile; rv:123.0) Gecko/123.0 Firefox/123.0';
+			case 'iphone':
+				return 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_3_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.3.1 Mobile/15E148 Safari/604.1';
+			case 'ipad':
+				return 'Mozilla/5.0 (iPad; CPU OS 17_3_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.3.1 Mobile/15E148 Safari/604.1';
+			case 'linux':
+				return 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
+			default:
+				return 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
+		}
+	}
 
 	/**
 	 * Convert a memory limit value to bytes.
@@ -489,12 +529,7 @@ class Proxy {
 
 	//Makes an HTTP request via cURL, using request data that was passed directly to this script.
 	public function makeRequest($url) {
-		//To-Do: Remove this entirely. First, determine if they're windows/linux/mac, and set a predefined useragent based off that.
-		//Tell cURL to make the request using the brower's user-agent if there is one, or a fallback user-agent otherwise.
-		$user_agent = $_SERVER["HTTP_USER_AGENT"];
-		if (empty($user_agent)) {
-			$user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.3";
-		}
+		$user_agent = $this->generateUA($_SERVER["HTTP_USER_AGENT"]);
 		
 		$ch = curl_init();
 		curl_setopt($ch, CURLOPT_USERAGENT, $user_agent);
@@ -510,6 +545,7 @@ class Proxy {
 			"x-content-type-options", "cross-origin-opener-policy-report-only",
 			"content-security-policy", "x-frame-options", "x-robots-tag",
 			"x-xss-protection", "X-Frame-Options", "Origin",
+			"User-Agent", "Pragma", "Upgrade-Insecure-Requests",
 			"Client-IP", "X-Real-IP", "X-Forwarded-For",
 			"HTTP_CF_CONNECTING_IP", "REMOTE_ADDR", "HTTP_X_FORWARDED_FOR", "HTTP_CLIENT_IP",
 			"X-Forwarded-Host", "HTTP_X_REAL_IP", "HTTP_VIA", "Forwarded", "CF-Connecting-IP", "X-Cluster-Client-Ip",
