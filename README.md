@@ -61,9 +61,9 @@ PocketProxy doesn't require any configuration out of the box, but configuration 
 
 PocketProxy has several known limitations. Some of them may be fixed in future releases. For now, they include:
 
-* `<object>` tags are not handled
 * YouTube does not work (try [youtubeunblocked.live](youtubeunblocked.live))
 * Many MANY websites can display broken qualities when they are javascript dependant.
+* WebSocket connections are not enabled as of yet
 * Probably more, but as I come across limitations I tend to forget them before writing them down
 
 ## Contribute
