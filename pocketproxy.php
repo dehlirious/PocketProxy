@@ -766,8 +766,6 @@ class Proxy {
 		if (empty($responseBody)) {
 			$responseBody = " ";
 		}
-		//HP message: PHP Warning:  DOMDocument::loadHTML(): Tag nav invalid in Entity
-		//PHP message: PHP Warning:  DOMDocument::loadHTML(): Tag footer invalid in Entity, line: 349 in pocketproxy.php on line 663" while reading response header from upstream, client: 36.73.44.128, server: zrr.us, request: "GET /pocketproxy.php?https://mb13.men/
 		
 		//Parse the DOM.
 		$doc = new DomDocument();
