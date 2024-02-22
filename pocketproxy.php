@@ -64,15 +64,6 @@ $config = [
 
 ];
 
-/**
- * Set the path for the blacklist log file or the functionality will be disabled
- *
- * For privacy protection, ensure to customize this path to a secure location.
- * Logging functionality will remain disabled until this variable is modified.
- *
- * $blacklistlog : The path to the blacklist log file.
- */
-
 class Proxy {
 	public $a, $maxdl, $forceCORS, $blacklistlog, $cce, $blacklistPatterns, $CaptchaSites,
 		$httpvariable, $whitelistPatterns, $disallowLocal, $startURL, $landingExampleURL, $requiredExtensions;
@@ -125,65 +116,230 @@ class Proxy {
 		}
 	}
 	
-	//Remove the http(s):// and the /file.php?query=here from a url (and subdomains too)
+	/**
+	 * Extracts the domain from a given URL by removing the protocol and path.
+	 *
+	 * This function removes the 'http://' or 'https://' and any subsequent path or query string
+	 * from the provided URL to extract the domain.
+	 */
 	public function getDomain($url) {
-		$domain = parse_url((strpos($url, "://") === false ? "http://" : "") . trim($url) , PHP_URL_HOST);
-		if (preg_match('/[a-z0-9][a-z0-9\-]{0,63}\.[a-z]{2,6}(\.[a-z]{1,2})?$/i', $domain, $match)) {
+		if (preg_match('/[a-z0-9][a-z0-9\-]{0,63}\.[a-z]{2,6}(\.[a-z]{1,2})?$/i', parse_url((strpos($url, "://") === false ? "http://" : "") . trim($url) , PHP_URL_HOST), $match)) {
 			return $match[0];
 		}
 	}
 
-	//Helper function for use inside $whitelistPatterns/$blacklistPatterns.
-	//Returns a regex that matches all HTTP[S] URLs for a given hostname.
+	/**
+	 * Helper function to generate a regex pattern that matches HTTP[S] URLs for a given hostname.
+	 *
+	 * This function generates a regex pattern that matches all HTTP[S] URLs with the specified hostname,
+	 * including subdomains. The generated pattern can be used in whitelist or blacklist patterns.
+	 */
 	public function getHostnamePattern($hostname) {
-		$escapedHostname = str_replace(".", "\.", $hostname);
-		return "@^https?://([a-z0-9-]+\.)*" . $escapedHostname . "@i";
+		return "@^https?://([a-z0-9-]+\.)*" . str_replace(".", "\.", $hostname) . "@i";
 	}
 
-	public function logcbl($url) {
-		$logDirectory = dirname($this->blacklistlog);
-		
-		if (file_exists($this->blacklistlog) && is_readable($this->blacklistlog) 
-			&& is_writable($this->blacklistlog) && is_dir($logDirectory) && is_writable($logDirectory)
-			&& $this->blacklistlog !== "logxzx/captchablacklist.log") {
-			// Read the contents of the blacklist log file
-			$file = file($this->blacklistlog);
-			$line_count_pre = count($file);
-			// Construct the content to be logged
-			$content = $this->getUserIp() . "; #" . $url . PHP_EOL;
-			// Check if the URL is not already logged to prevent duplicates
-			if (!in_array($content, $file)) {
-				// Append the content to the file
-				file_put_contents($this->blacklistlog, $content, FILE_APPEND | LOCK_EX);
+	/**
+	 * Helper function to determine whether to allow proxying of a given URL.
+	 *
+	 * This function checks if the provided URL passes whitelist, blacklist, and local restrictions
+	 * to determine whether it is valid for proxying.
+	 */
+	public function isValidURL($url) {
+		return $this->passesWhitelist($url) && $this->passesBlacklist($url) && ($this->disallowLocal ? !$this->isLocal($url) : true);
+	}
+	
+	/**
+	 * Retrieves the user's IP address from server headers.
+	 *
+	 * This function checks various server headers in the order of priority
+	 * to determine the user's IP address. It first looks for Cloudflare headers
+	 * if applicable, and falls back to the REMOTE_ADDR header 
+	 * if no valid IP is found in the previous headers.
+	 */
+	public function getUserIp() {
+		// Define the headers in the order of priority for determining the user IP
+		$headersToCheck = [
+			'HTTP_CF_CONNECTING_IP',	// Cloudflare header, useful if you're using Cloudflare services
+			'CF-Connecting-IP',	// Cloudflare header, useful if you're using Cloudflare services
+			//'HTTP_CLIENT_IP',		   // Direct client IP
+			//'HTTP_X_FORWARDED_FOR',   // Can be uncommented if you decide to trust this header
+		];
+
+		foreach ($headersToCheck as $header) {
+			if (isset($_SERVER[$header])) {
+				$ip = $_SERVER[$header];
+				if (filter_var($ip, FILTER_VALIDATE_IP)) {
+					$this->ip = $ip; // Assign the first valid IP found to the class property
+					return $ip; // Return the IP and stop further processing
+				}
 			}
-			// Release the file handle
-			unset($file);
+		}
+
+		// If no valid IP is found in the headers above, fallback to REMOTE_ADDR
+		if (filter_var($_SERVER['REMOTE_ADDR'], FILTER_VALIDATE_IP)) {
+			$this->ip = $_SERVER['REMOTE_ADDR'];
+			return $this->ip;
+		}
+
+		// If no valid IP is found at all, you might want to handle it differently
+		// For now, let's return null indicating no valid IP was found
+		$this->ip = null;
+		return null;
+	}
+	
+	/**
+	 * Helper function used to remove keys from an associative array using case insensitive matching.
+	 * 
+	 * This function iterates through the keys of the provided associative array and removes keys 
+	 * that match the keys specified in the $keys2remove array, ignoring case. It returns an array 
+	 * containing the keys that were removed.
+	 */
+	public function removeKeys(&$assoc, $keys2remove) {
+		$keys = array_keys($assoc);
+		$map = [];
+		$removedKeys = [];
+		foreach ($keys as $key) {
+			$map[strtolower($key) ] = $key;
+		}
+		foreach ($keys2remove as $key) {
+			$key = strtolower($key);
+			if (isset($map[$key])) {
+				unset($assoc[$map[$key]]);
+				$removedKeys[] = $map[$key];
+			}
+		}
+		return $removedKeys;
+	}
+	
+	/**
+	 * Retrieves all HTTP headers from the current request.
+	 *
+	 * This function returns an array containing all HTTP headers present in the current request.
+	 * If the 'getallheaders' function is available, it is used to retrieve the headers.
+	 * Otherwise, the function iterates over $_SERVER to collect header values.
+	 */
+	public function getAllHeaders() {
+		if (!function_exists("getallheaders")) {
+			// Adapted from http://www.php.net/manual/en/function.getallheaders.php#99814
+			$result = [];
+			foreach ($_SERVER as $key => $value) {
+				if (substr($key, 0, 5) == "HTTP_") {
+					$key = str_replace(" ", "-", ucwords(strtolower(str_replace("_", " ", substr($key, 5)))));
+					$result[$key] = $value;
+				}
+			}
+			return $result;
+		} else {
+			// If getallheaders() function already exists, use it
+			return getallheaders();
 		}
 	}
 	
-	//Validates a URL against the whitelist
-	public function passesWhitelist($url) {
-		if (count($this->whitelistPatterns) === 0) {
-			return true;
+	/**
+	 * Converts a relative URL to an absolute URL based on a given base URL.
+	 * Modified version of code found at https://web.archive.org/web/20121014113424/https://nashruddin.com/PHP_Script_for_Converting_Relative_to_Absolute_URL
+	 *
+	 * This function supports various relative URL formats, including those that start with
+	 * "/", "?", "#", or are relative to the current directory or parent directories.
+	 * It handles paths with "../" and "./", and automatically detects and preserves absolute URLs.
+	 * Additionally, it supports URLs with or without authentication and custom ports.
+	 * 
+	 * Situations where it's failed:
+	 * ["rel" => "../../../page2.html", "base" => "http://www.example.com/dir1/dir2/dir3/dir4/", "expected" => "http://www.example.com/page2.html"],
+	 * FAIL: Expected http://www.example.com/page2.html, got http://www.example.com/dir1/dir2/page2.html
+	 * 
+	 * ["rel" => "../../../updir/page2.html", "base" => "http://www.example.com/dir/subdir/another/page1.html", "expected" => "http://www.example.com/updir/page2.html"],
+	 * FAIL: Expected http://www.example.com/updir/page2.html, got http://www.example.com/dir/updir/page2.html
+	 * 
+	 * ["rel" => "file2.txt", "base" => "file:///C:/dir1/file1.txt", "expected" => "file:///C:/dir1/file2.txt"],
+	 * FAIL: Expected file:///C:/dir1/file2.txt, got file://C:/dir1/file2.txt
+	 * 
+	 */
+	public function rel2abs($rel, $base) {
+		if (empty($rel)) {
+			//$rel = ".";
 		}
-		foreach ($this->whitelistPatterns as $pattern) {
-			if (preg_match($pattern, $url)) {
-				return true;
+		if (parse_url($rel, PHP_URL_SCHEME) != "" || strpos($rel, "//") === 0) {
+			return $rel; // Return if already an absolute URL
+		}
+		if ($rel[0] == "#" || $rel[0] == "?") {
+			return $base . $rel; // Queries and anchors
+		}
+
+		// Validate the base URL
+		$parsedBase = parse_url($base);
+		if (!$parsedBase) {
+			// Handle error: invalid base URL
+			return false; // Or handle as appropriate for your use case
+		}
+		extract($parsedBase); // Parse base URL and convert to local variables: $scheme, $host, $path
+
+		$path = isset($path) ? preg_replace("#/[^/]*$#", "", $path) : "/"; // Remove non-directory element from path
+		if ($rel[0] == "/") {
+			$path = ""; // Destroy path if relative url points to root
+		}
+
+		// Add condition for default HTTPS port (443)
+		$port = isset($port) && $port != 80 && $port != 443 ? ":" . $port : "";
+
+		$auth = isset($user) ? $user . (isset($pass) ? ":$pass" : "") . "@" : "";
+
+		$abs = "$auth$host$port$path/$rel"; // Dirty absolute URL
+
+		// Ensure the loop that resolves "../" is safe against malformed inputs
+		$loopSafetyCounter = 0;
+		while (strpos($abs, '../') !== false && $loopSafetyCounter++ < 20) { // Prevent infinite loops
+			$abs = preg_replace('#/([^/]+/)?\.\./#', '/', $abs, -1, $count);
+			if ($count == 0) {
+				break; // Exit if no replacements were made
 			}
 		}
-		return false;
-	}
-	
-	//Validates a URL against the blacklist.
-	public function passesBlacklist($url) {
-		foreach ($this->blacklistPatterns as $pattern) {
-			if (preg_match($pattern, $url)) {
-				return false;
-			}
-		}
-		return true;
+
+		$abs = preg_replace('#/\./#', '/', $abs); // Resolve "/./"
+		$abs = preg_replace('#//+#', '/', $abs); // Remove duplicate slashes
+		return $scheme . "://" . $abs; // Absolute URL is ready
 	}
 
+	/**
+	 * Convert a memory limit value to bytes.
+	 *
+	 * This function takes a memory limit value in various formats (e.g., '256M', '2G', '1024K')
+	 * and converts it to bytes for easier processing and comparison.
+	 */
+	public function memoryLimitToBytes($val) {
+		$val = trim($val);
+
+		// Check if the value is purely numeric, which means it's already in bytes
+		if (is_numeric($val)) {
+			return (int)$val;
+		}
+
+		// Regular expression to separate the number from the unit
+		if (preg_match('/^(\d+)([gmk])$/i', $val, $matches)) { // Update here
+			$value = (int)$matches[1];
+			$unit = strtolower($matches[2]);
+
+			switch ($unit) {
+				case 'g':
+					return $value * 1024 * 1024 * 1024;
+				case 'm':
+					return $value * 1024 * 1024;
+				case 'k':
+					return $value * 1024;
+			}
+		}
+
+		// If the input doesn't match expected patterns, throw an exception
+		throw new InvalidArgumentException("Invalid memory limit format: {$val}");
+	}
+
+	/**
+	 * Determines if the given URL is a local address or not.
+	 *
+	 * This function checks whether the provided URL corresponds to a local address 
+	 * by attempting to resolve the hostname to its corresponding IP addresses and 
+	 * checking if any of them fall within the private or reserved IP range.
+	 */
 	public function isLocal($url) {
 		//First, generate a list of IP addresses that correspond to the requested URL.
 		$ips = [];
@@ -212,76 +368,69 @@ class Proxy {
 		}
 		return false;
 	}
-	
-	//Helper function that determines whether to allow proxying of a given URL.
-	public function isValidURL($url) {
-		return $this->passesWhitelist($url) && $this->passesBlacklist($url) && ($this->disallowLocal ? !$this->isLocal($url) : true);
-	}
 
-	public function getUserIp() {
-		// Define the headers in the order of priority for determining the user IP
-		$headersToCheck = [
-			'HTTP_CF_CONNECTING_IP',	// Cloudflare header, useful if you're using Cloudflare services
-			'CF-Connecting-IP',	// Cloudflare header, useful if you're using Cloudflare services
-			'HTTP_CLIENT_IP',		   // Direct client IP
-			//'HTTP_X_FORWARDED_FOR',   // Can be uncommented if you decide to trust this header
-		];
-
-		foreach ($headersToCheck as $header) {
-			if (isset($_SERVER[$header])) {
-				$ip = $_SERVER[$header];
-				if (filter_var($ip, FILTER_VALIDATE_IP)) {
-					$this->ip = $ip; // Assign the first valid IP found to the class property
-					return $ip; // Return the IP and stop further processing
-				}
+	/**
+	 * Validates a URL against the whitelist.
+	 *
+	 * This function checks if the provided URL matches any of the patterns in the whitelist.
+	 * If the whitelist is empty, all URLs are considered valid.
+	 */
+	public function passesWhitelist($url) {
+		if (count($this->whitelistPatterns) === 0) {
+			return true;
+		}
+		foreach ($this->whitelistPatterns as $pattern) {
+			if (preg_match($pattern, $url)) {
+				return true;
 			}
 		}
-
-		// If no valid IP is found in the headers above, fallback to REMOTE_ADDR
-		if (filter_var($_SERVER['REMOTE_ADDR'], FILTER_VALIDATE_IP)) {
-			$this->ip = $_SERVER['REMOTE_ADDR'];
-			return $this->ip;
-		}
-
-		// If no valid IP is found at all, you might want to handle it differently
-		// For now, let's return null indicating no valid IP was found
-		$this->ip = null;
-		return null;
-	}
-
-
-	//Helper function used to removes/unset keys from an associative array using case insensitive matching
-	public function removeKeys(&$assoc, $keys2remove) {
-		$keys = array_keys($assoc);
-		$map = [];
-		$removedKeys = [];
-		foreach ($keys as $key) {
-			$map[strtolower($key) ] = $key;
-		}
-		foreach ($keys2remove as $key) {
-			$key = strtolower($key);
-			if (isset($map[$key])) {
-				unset($assoc[$map[$key]]);
-				$removedKeys[] = $map[$key];
-			}
-		}
-		return $removedKeys;
+		return false;
 	}
 	
-	public function getAllHeaders() {
-		if (!function_exists("getallheaders")) {
-			// Adapted from http://www.php.net/manual/en/function.getallheaders.php#99814
-			$result = [];
-			foreach ($_SERVER as $key => $value) {
-				if (substr($key, 0, 5) == "HTTP_") {
-					$key = str_replace(" ", "-", ucwords(strtolower(str_replace("_", " ", substr($key, 5)))));
-					$result[$key] = $value;
-				}
+	/**
+	 * Validates a URL against the blacklist.
+	 *
+	 * This function checks if the provided URL matches any of the patterns in the blacklist.
+	 * If the URL matches any pattern in the blacklist, it is considered invalid.
+	 */
+	public function passesBlacklist($url) {
+		foreach ($this->blacklistPatterns as $pattern) {
+			if (preg_match($pattern, $url)) {
+				return false;
 			}
-			return $result;
-		} else {
-			// If getallheaders() function already exists, use it
-			return getallheaders();
+		}
+		return true;
+	}
+
+	/**
+	 * Logs the provided URL along with the user's IP address to a blacklist log file.
+	 *
+	 * This function checks if the blacklist log file exists, is readable, and writable, 
+	 * along with its directory. It also ensures that the provided URL is not already logged 
+	 * to prevent duplicates. If all conditions are met, it appends the URL and user's IP 
+	 * address to the blacklist log file.
+	 */
+	public function logcbl($url) {
+		// Get the directory of the blacklist log file
+		$logDirectory = dirname($this->blacklistlog);
+		
+		// Check if the blacklist log file and its directory exist, are readable, and writable
+		if (file_exists($this->blacklistlog) && is_readable($this->blacklistlog) 
+			&& is_writable($this->blacklistlog) && is_dir($logDirectory) && is_writable($logDirectory)
+			&& $this->blacklistlog !== "logxzx/captchablacklist.log") {
+			
+			$file = file($this->blacklistlog);
+			$line_count_pre = count($file);
+			
+			// Construct the content to be logged
+			$content = $this->getUserIp() . "; #" . $url . PHP_EOL;
+			
+			// Check if the URL is not already logged to prevent duplicates
+			if (!in_array($content, $file)) {
+				file_put_contents($this->blacklistlog, $content, FILE_APPEND | LOCK_EX);
+			}
+			
+			unset($file);
 		}
 	}
 
@@ -389,153 +538,118 @@ class Proxy {
 
 		return ["headers" => $responseHeaders, "body" => $responseBody, "responseInfo" => $responseInfo, ];
 	}
-
-	//Converts relative URLs to absolute ones, given a base URL.
-	//Modified version of code found at https://web.archive.org/web/20121014113424/https://nashruddin.com/PHP_Script_for_Converting_Relative_to_Absolute_URL
-	public function rel2abs($rel, $base) {
-		if (empty($rel)) {
-			$rel = ".";
-		}
-		if (parse_url($rel, PHP_URL_SCHEME) != "" || strpos($rel, "//") === 0) {
-			return $rel;
-		} //Return if already an absolute URL
-		if ($rel[0] == "#" || $rel[0] == "?") {
-			return $base . $rel;
-		} //Queries and anchors
-		extract(parse_url($base)); //Parse base URL and convert to local variables: $scheme, $host, $path
-		$path = isset($path) ? preg_replace("#/[^/]*$#", "", $path) : "/"; //Remove non-directory element from path
-		if ($rel[0] == "/") {
-			$path = "";
-		} //Destroy path if relative url points to root
-		$port = isset($port) && $port != 80 ? ":" . $port : "";
-		$auth = "";
-		if (isset($user)) {
-			$auth = $user;
-			if (isset($pass)) {
-				$auth .= ":" . $pass;
-			}
-			$auth .= "@";
-		}
-		$abs = "$auth$host$port$path/$rel"; //Dirty absolute URL
-		for ($n = 1;$n > 0;$abs = preg_replace(["#(/\.?/)#", "#/(?!\.\.)[^/]+/\.\./#"], "/", $abs, -1, $n)) {
-		} //Replace '//' or '/./' or '/foo/../' with '/'
-		return $scheme . "://" . $abs; //Absolute URL is ready.
-	}
 	
-	//Convert a memory limit value to bytes.
-	public function memoryLimitToBytes($val) {
-		$val = trim($val);
-
-		// Check if the value is purely numeric, which means it's already in bytes
-		if (is_numeric($val)) {
-			return (int)$val;
-		}
-
-		// Regular expression to separate the number from the unit
-		if (preg_match('/^(\d+)([gmk])$/i', $val, $matches)) { // Update here
-			$value = (int)$matches[1];
-			$unit = strtolower($matches[2]);
-
-			switch ($unit) {
-				case 'g':
-					return $value * 1024 * 1024 * 1024;
-				case 'm':
-					return $value * 1024 * 1024;
-				case 'k':
-					return $value * 1024;
-			}
-		}
-
-		// If the input doesn't match expected patterns, throw an exception
-		throw new InvalidArgumentException("Invalid memory limit format: {$val}");
-	}
-
-	//Proxify contents of url() references in blocks of CSS text.
+	/**
+	 * Proxify contents of url() references in blocks of CSS text.
+	 *
+	 * This function normalizes CSS content by replacing URLs with proxified URLs,
+	 * ensuring that all URLs in the CSS content are properly proxied.
+	 * It also handles memory exhaustion gracefully by returning the original CSS content
+	 * if the memory limit is nearing exhaustion during processing.
+	 */
 	public function proxifyCSS($css, $baseURL) {
-		$memoryLimit = ini_get('memory_limit');
+		/* Please note: This is unsecure. For now, it should be disabled. */
+		//$memoryLimit = ini_get('memory_limit');
+		
 		// If memory limit is set to -1 (unlimited), manually set it to 1GB for our checks
-		$memoryLimitBytes = ($memoryLimit == -1) ? $this->memoryLimitToBytes('128M') : $this->memoryLimitToBytes($memoryLimit);
-		$safeMemoryLimit = $memoryLimitBytes * 0.8; // Stay 20% below the memory limit
+		//$memoryLimitBytes = ($memoryLimit == -1) ? $this->memoryLimitToBytes('1G') : $this->memoryLimitToBytes($memoryLimit);
+		//$safeMemoryLimit = $memoryLimitBytes * 0.95; // Stay 5% below the memory limit
 
+		// Split the CSS content into lines
 		$sourceLines = explode("\n", $css);
 		$normalizedLines = [];
-		foreach ($sourceLines as $line) {
-			if (memory_get_usage() > $safeMemoryLimit) {
-				// Memory limit nearing exhaustion, stop processing and return the original CSS
-				return $css;
-			}
 
-			if (preg_match("/@import\s+url/i", $line) || preg_match("/@font-face/i", $line)) {
-				$normalizedLines[] = $line;
-			} else {
-				$normalizedLines[] = preg_replace_callback("/(@import\s+)([^;\s]+)([\s;])/i", function ($matches) use ($baseURL) {
-					return $matches[1] . "url(" . $matches[2] . ")" . $matches[3];
-				}, $line);
-			}
+		// Loop through each line of the CSS content
+		foreach ($sourceLines as $line) {
+			//if (memory_get_usage() > $safeMemoryLimit) {
+				// Memory limit nearing exhaustion, stop processing and return the original CSS
+				//return $css;
+			//}
+
+			// Match the quotation character used and capture it in a group
+			$normalizedLine = preg_replace_callback("/(@import\s+)(['\"])([^;\s]+)(['\"])([\s;])|url\(([\"']?)(.*?)\\6\)/i", function ($matches) use ($baseURL) {
+				// Check if it's an @import or url() and perform the corresponding replacement
+				if (!empty($matches[1])) {
+					$quote = $matches[2] ?? '';
+					// Construct the proxified URL
+					return $matches[1] . "url(" . $quote . PROXY_PREFIX . $this->rel2abs($matches[3], $baseURL) . $quote . ")" . $matches[5];
+				} else {
+					$quote = $matches[6] ?? ''; // Get the quotation character used (or empty string if not provided)
+					$url = $matches[7];
+
+					if (stripos($url, "data:") === 0) {
+						return "url(" . $quote . $url . $quote . ")";
+					} // The URL isn't an HTTP URL but is actual binary data. Don't proxify it.
+
+					// Construct the proxified URL
+					return "url(" . $quote . PROXY_PREFIX . $this->rel2abs($url, $baseURL) . $quote . ")";
+				}
+			}, $line);
+
+			$normalizedLines[] = $normalizedLine !== null ? $normalizedLine : $line; // Ensure null is handled
 		}
+
+		// Join the normalized lines back into a single string
 		$normalizedCSS = implode("\n", $normalizedLines);
 
-		// Perform the final replacement with a memory check
-		$processedCSS = preg_replace_callback("/url\((.*?)\)/i", function ($matches) use ($baseURL, $safeMemoryLimit) {
-			if (memory_get_usage() > $safeMemoryLimit) {
-				// If this point is reached, it's too late to return the original CSS without partial processing,
-				return $matches[0]; // Return the match unchanged
-			}
-
-			$url = $matches[1];
-			// Remove any surrounding single or double quotes from the URL so it can be passed to rel2abs - the quotes are optional in CSS
-			// Assume that if there is a leading quote then there should be a trailing quote, so just use trim() to remove them
-			if (strpos($url, "'") === 0) {
-				$url = trim($url, "'");
-			}
-			if (strpos($url, "\"") === 0) {
-				$url = trim($url, "\"");
-			}
-			if (stripos($url, "data:") === 0) {
-				return "url(" . $url . ")";
-			} // The URL isn't an HTTP URL but is actual binary data. Don't proxify it.
-			return "url(" . PROXY_PREFIX . $this->rel2abs($url, $baseURL) . ")";
-		}, $normalizedCSS);
 		
-		return $processedCSS ? $processedCSS : $css;
-	}
-	
-	//Added to prevent empty responses and remove php warning codes
-	public function nozeros($ss) {
-		if ($ss > 0.0) {
-			return strrpos($ss, " ");
-		}
-		else {
-			return 1; //intval($x);
-		}
+		return $normalizedCSS ? $normalizedCSS : $css;
 	}
 
-	//Proxify "srcset" attributes (normally associated with <img> tags.)
+	/**
+	 * Proxifies the srcset attribute by replacing image URLs with proxified URLs.
+	 *
+	 * This function takes a srcset attribute string and a base URL, splits the srcset
+	 * into individual sources, proxifies each image URL, and recombines the sources into
+	 * a single proxified srcset attribute string.
+	 */
 	public function proxifySrcset($srcset, $baseURL) {
 		$sources = array_map("trim", explode(",", $srcset)); //Split all contents by comma and trim each value
-		$proxifiedSources = array_map(function ($source) use ($baseURL) {
-			$sauce = $this->nozeros($source);
+		
+		// Function to handle zero values and prevent PHP warning codes
+		$nozeros = function($ss) {
+			if ($ss > 0.0) {
+				return strrpos($ss, " ");
+			}
+			else {
+				return 1; //intval($x);
+			}
+		};
+		
+		// Proxify each source URL and recombine into a single srcset string
+		$proxifiedSources = array_map(function ($source) use ($baseURL, $nozeros) {
+			$sauce = $nozeros($source);
 			if($sauce = 1) {
-				$components = array_map("trim", str_split($source));
+				$components = array_map("trim", explode(" ", $source)); // Split by space
 			} else {
-				$components = array_map("trim", str_split($source,$sauce));//Split by last space and trim
+				$components = array_map("trim", explode(" ", substr($source, 0, $sauce))); // Split by space and consider substring
 			}
 			$components[0] = PROXY_PREFIX . $this->rel2abs(ltrim(array_key_exists(0, $components) ? $components[0] : '', "/") , $baseURL); //First component of the split source string should be an image URL; proxify it
-			$result = [];
+			
+			/*$result = [];
 			foreach ($components as $item) {
 				if (preg_match("/'(.*?)' => '(.*?)'/", $item, $matches)) {
 					$result[$matches[1]] = $matches[2];
 				}
-			}
+			}*/
 
-			return implode(" ", $components); //Recombine the components into a single source //MODIFIED to remove error
+			return implode(" ", $components); //Recombine the components into a single source //MODIFIED to include space separator
 			
 		}
 		, $sources);
 		return implode(", ", $proxifiedSources); //Recombine the sources into a single "srcset"
 	}
 	
-	
+	/**
+	 * Handles captcha verification for a given URL.
+	 *
+	 * This function extracts the domain from the provided URL and checks if it matches
+	 * any of the captcha sites or if the user agent matches any of the captcha agents.
+	 * If a captcha verification is required, it generates a captcha challenge and handles
+	 * the user input validation.
+	 *
+	 * Note: This function requires the PHP GD extension and the Gregwar Captcha library.
+	 */
 	public function HandleCaptcha($url) {
 		$domain = isset(parse_url($url)["host"]) ? $this->getDomain(parse_url($url)["host"]) : "";
 		$isUserAgentMatch = false;
@@ -591,8 +705,7 @@ class Proxy {
 
 			if (!$validatedCaptcha && $sessionFlag) {
 				// Set session expiration and implement session timeout
-				$session_timeout = 1800; // 30 minutes (in seconds)
-				if (isset($_SESSION['LAST_ACTIVITY']) && time() - $_SESSION['LAST_ACTIVITY'] > $session_timeout) {
+				if (isset($_SESSION['LAST_ACTIVITY']) && time() - $_SESSION['LAST_ACTIVITY'] > 1800) { // 30 minutes (in seconds)
 					session_unset(); // Unset all session variables
 					session_destroy(); // Destroy the session
 					// Redirect the user to the login page or display an appropriate message
@@ -604,7 +717,6 @@ class Proxy {
 				// Logging session activity
 				//$log_data = "Session activity: " . $_SERVER['REMOTE_ADDR'] . " - " . $_SERVER['HTTP_USER_AGENT'] . " - " . date('Y-m-d H:i:s');
 				// Write $log_data to a log file or database table to monitor session activity
-				//Because I don't care for that stuff, this is not implemented.
 
 				?>
 				<h1>The website you're trying to visit is on the Suspicious Website List!</h1>
@@ -636,6 +748,14 @@ class Proxy {
 	
 	}
 	
+	
+	/**
+	 * Processes the HTML body of a response
+	 *
+	 * This function performs various modifications to the HTML body to ensure proper proxifying
+	 * when accessed through the proxy. It normalizes character encoding, modifies form actions,
+	 * proxifies URLs, and fixes issues with meta tags and stylesheets.
+	 */
 	public function processHTMLBody($responseBody, $url, $jsContent){
 		//Attempt to normalize character encoding.
 		if (mb_detect_encoding($responseBody, "UTF-8, ISO-8859-1")) {
@@ -668,6 +788,7 @@ class Proxy {
 			$actionInput->appendXML('<input type="hidden" name="BoopProxyForm" value="' . htmlspecialchars($action) . '" />');
 			$form->appendChild($actionInput);
 		}
+		
 		//Proxify <meta> tags with an 'http-equiv="refresh"' attribute.
 		foreach ($xpath->query("//meta[@http-equiv]") as $element) {
 			if (strcasecmp($element->getAttribute("http-equiv") , "refresh") === 0) {
@@ -680,59 +801,103 @@ class Proxy {
 				}
 			}
 		}
+		
 		//Profixy <style> tags.
-		foreach ($xpath->query("//style") as $style) {
-			//main(): unterminated entity reference skey=c491285d6722e4fa&amp;v=v12) format('woff')} in /var/www/tera/html/pocketproxy.php on line 757
-			$style->nodeValue = $this->proxifyCSS($style->nodeValue, $url);
+		foreach ($xpath->query("//style") as $element) {
+			$element->nodeValue = $this->proxifyCSS($element->nodeValue, $url);
 		}
+		
 		//Proxify tags with a "style" attribute.
 		foreach ($xpath->query("//*[@style]") as $element) {
 			$element->setAttribute("style", $this->proxifyCSS($element->getAttribute("style") , $url));
 		}
+		
 		//Proxify "srcset" attributes in <img> tags.
 		foreach ($xpath->query("//img[@srcset]") as $element) {
 			$element->setAttribute("srcset", $this->proxifySrcset($element->getAttribute("srcset") , $url));
 		}
+		
 		//Proxify any of these attributes appearing in any tag.
-		$proxifyAttributes = ["href", "src"];
+		$proxifyAttributes = ["href", "src",
+			//These are untested but assumed to work rather well
+			'data-image-url', 'data-audio-url', 'data-source', 'data-iframe-url', 'data-script-url', 'data-style-url', 
+			'data-redirect-url', 'data-thumbnail-url', 'data-avatar-url', 'data-srcset', 'data-video-src', 'data-poster', 
+			'data-ajax-url', 'data-background-image', 'data-action', 'data-file', 'data-download-url', 'data-url', 'data-link', 
+			'data-source-url', 'data-href', 'data-target', 'data-redirect', 'data-external-link', 'data-thumbnail', 
+			'data-image-link', 'data-external-url', 'data-video-link', 'data-audio-link', 'data-script-src', 'data-style-src', 
+			'data-download-link', 'data-embed-url', 'data-iframe-link', 'data-source-link', 'data-embed-src', 
+			'data-redirect-link', 'data-source-src', 'data-download-source', 'data-source-download-url', 
+			'data-file-link', 'data-file-url', 'data-url-link', 'data-link-url', 'data-content-url', 'data-url-content', 
+			'data-external-content', 'data-content-external', 'data-download-content', 'data-content-download', 
+			'data-image-source', 'data-source-image', 'data-download-image', 'data-image-download', 
+			'data-thumbnail-source', 'data-source-thumbnail', 'data-download-thumbnail', 'data-thumbnail-download',
+		];
+		
+		$noMatchRegex = "/^(about|javascript|magnet|mailto|tel|data|chrome-extension|sms|itms|itms-apps|android-app|ios-app):|#/i";
+		
+		$processAttribute = function ($element, $attrName) use ($noMatchRegex, $url) {
+			//For every element with the given attribute...
+			$attrContent = $element->getAttribute($attrName);
+			
+			if ($attrName == "href" && preg_match($noMatchRegex, $attrContent)) {
+				return;
+			}
+			if ($attrName == "src" && preg_match($noMatchRegex, $attrContent)) {
+				return;
+			}
+			$attrContent = $this->rel2abs($attrContent, $url);
+			$attrContent = PROXY_PREFIX . $attrContent;
+			$element->setAttribute($attrName, $attrContent);
+		};
+		
 		foreach ($proxifyAttributes as $attrName) {
 			foreach ($xpath->query("//*[@" . $attrName . "]") as $element) {
 				//For every element with the given attribute...
-				$attrContent = $element->getAttribute($attrName);
-				if ($attrName == "href" && preg_match("/^(about|javascript|magnet|mailto):|#/i", $attrContent)) {
-					continue;
-				}
-				if ($attrName == "src" && preg_match("/^(data):/i", $attrContent)) {
-					continue;
-				}
-				$attrContent = $this->rel2abs($attrContent, $url);
-				$attrContent = PROXY_PREFIX . $attrContent;
-				$element->setAttribute($attrName, $attrContent);
+				$processAttribute($element, $attrName);
 			}
 		}
-
-		//Attempt to force AJAX requests to be made through the proxy by
-		//wrapping window.XMLHttpRequest.prototype.open in order to make
-		//all request URLs absolute and point back to the proxy.
-		//The rel2abs() JavaScript function serves the same purpose as the server-side one in this file,
-		//but is used in the browser to ensure all AJAX request URLs are absolute and not relative.
-		//Uses code from these sources:
-		//http://stackoverflow.com/questions/7775767/javascript-overriding-xmlhttprequest-open
-		//https://gist.github.com/1088850
-		//TODO: implement more than just xmlhttp
-		//it's better than nothing.
-		$head = $xpath->query("//head")
-			->item(0);
-		$body = $xpath->query("//body")
-			->item(0);
-		$prependElem = $head != null ? $head : $body;
-
-		//Only bother trying to apply this hack if the DOM has a <head> or <body> element;
-		//insert some JavaScript at the top of whichever is available first.
-		//Protects against cases where the server sends a Content-Type of "text/html" when
-		//what's coming back is most likely not actually HTML.
 		
-	// href="https://zrr.us/pocketproxy.php?android-app://com.google.android.youtube/http/www.youtube.com/"><link rel="alternate" href="https://zrr.us/pocketproxy.php?ios-app://544007664/vnd.youtube/www.youtube.com/">
+		// Iterate over iframe tags with srcdoc attribute
+		foreach ($xpath->query("//iframe[@srcdoc]") as $iframe) {
+			// Get the content of srcdoc attribute
+			$srcdocContent = $iframe->getAttribute("srcdoc");
+			
+			// Create a new DOMDocument to parse the content of srcdoc
+			$srcdocDoc = new DOMDocument();
+			@$srcdocDoc->loadHTML($srcdocContent);
+			$srcdocXPath = new DOMXPath($srcdocDoc);
+			
+			// Iterate over all tags inside srcdoc
+			foreach ($srcdocXPath->query("//*") as $srcdocElement) {
+				// Process each element inside srcdoc using the $processAttribute function
+				foreach ($proxifyAttributes as $attrName) {
+					if ($srcdocElement->hasAttribute($attrName)) {
+						$processAttribute($srcdocElement, $attrName);
+					}
+				}
+			}
+			
+			// Convert the modified srcdoc content back to a string and update the iframe's srcdoc attribute
+			$iframe->setAttribute("srcdoc", $srcdocDoc->saveHTML());
+		}
+		
+		// Find all <object> elements
+		$objects = $doc->getElementsByTagName('object');
+		foreach ($objects as $object) {
+			// Get the value of the data attribute
+			$data = $object->getAttribute('data');
+			
+			// Modify the data attribute value as needed
+			$modifiedData = PROXY_PREFIX . $this->rel2abs($data, $url); // Implement your modification logic
+			
+			// Set the modified data attribute value
+			$object->setAttribute('data', $modifiedData);
+		}
+
+		$head = $xpath->query("//head")->item(0);
+		$body = $xpath->query("//body")->item(0);
+		$prependElem = $head != null ? $head : $body;
+		
 		if ($prependElem != null) {
 			$scriptElem = $doc->createElement("script", $jsContent);
 			
@@ -741,6 +906,7 @@ class Proxy {
 		}
 		
 		//I noticed Google results were ?url=https:/ and not ?url=https:// causing them to not function
+		//Edit: This should** no longer be needed but let's keep it just incase
 		foreach ($doc->getElementsByTagName('a') as $link) {
 		   $link->setAttribute('href', preg_replace(array('/https\:\/(?!\/)/', '/http\:\/(?!\/)/'), array('https://', 'http://'), $link->getAttribute('href')));
 		}
@@ -1569,37 +1735,63 @@ if (stripos($contentType, "text/html") !== false) {
 		}
 	}
 
-	function rel2abs(base, href) { // RFC 3986
-		// Converts a relative URL to an absolute URL based on a base URL.
-		try {
-			function removeDotSegments(input) {
-				var output = [];
-				input.replace(/^(\.\.?(\/|$))+/, "")
-					.replace(/\/(\.(\/|$))+/g, "/")
-					.replace(/\/\.\.$/, "/../")
-					.replace(/\/?[^\/]*/g, function(p) {
-						if (p === "/..") {
-							output.pop();
-						} else {
-							output.push(p);
-						}
-					});
-				return output.join("").replace(/^\//, input.charAt(0) === "/" ? "/" : "");
-			}
-
-			href = parseURI(href || "");
-			base = parseURI(base || "");
-
-			// Combines the base URL and relative URL into an absolute URL.
-			return !href || !base ? null : (href.protocol || base.protocol) +
-				(href.protocol || href.authority ? href.authority : base.authority) +
-				removeDotSegments(href.protocol || href.authority || href.pathname.charAt(0) === "/" ? href.pathname : (href.pathname ? ((base.authority && !base.pathname ? "/" : "") + base.pathname.slice(0, base.pathname.lastIndexOf("/") + 1) + href.pathname) : base.pathname)) +
-				(href.protocol || href.authority || href.pathname ? href.search : (href.search || base.search)) +
-				href.hash;
-		} catch (error) {
-			console.error("Error in rel2abs:", error);
-			return null;
+	/**
+	 * Not perfect but pretty good
+	 *
+	 * { rel: "../../../updir/page2.html", base: "http://www.example.com/dir/subdir/another/page1.html", expected: "http://www.example.com/updir/page2.html" },
+	 * FAIL: Expected http://www.example.com/updir/page2.html, got http://www.example.com/dir/updir/page2.html rel2abs.php:161:17
+	 * { rel: "../../../page2.html", base: "http://www.example.com/dir1/dir2/dir3/dir4/", expected: "http://www.example.com/page2.html" }, 
+	 * FAIL: Expected http://www.example.com/page2.html, got http://www.example.com/dir1/dir2/page2.html
+	 *
+	 **/
+	function rel2abs(rel, base) {
+		if (!rel) {
+			//rel = ".";
 		}
+		if (new URL(rel, base).href === rel || rel.startsWith("//")) {
+			return rel; // Return if already an absolute URL
+		}
+		if (rel[0] === "#" || rel[0] === "?") {
+			return base + rel; // Queries and anchors
+		}
+
+		// Validate the base URL
+		let parsedBase;
+		try {
+			parsedBase = new URL(base);
+		} catch (e) {
+			// Handle error: invalid base URL
+			return false; // Or handle as appropriate for your use case
+		}
+
+		let { pathname } = parsedBase;
+		pathname = pathname.replace(/\/[^\/]*$/, ""); // Remove non-directory element from path
+		if (rel[0] === "/") {
+			pathname = ""; // Destroy path if relative url points to root
+		}
+
+		// Add condition for default HTTPS port (443)
+		// in javascript, host already has the port!
+		//const port = parsedBase.port && parsedBase.port !== "80" && parsedBase.port !== "443" ? ":" + parsedBase.port : "";
+
+		const auth = parsedBase.username ? parsedBase.username + (parsedBase.password ? ":" + parsedBase.password : "") + "@" : "";
+
+		let abs = `\${auth}\${parsedBase.host}\${pathname}/\${rel}`; // Dirty absolute URL
+
+		// Ensure the loop that resolves "../" is safe against malformed inputs
+		let loopSafetyCounter = 0;
+		while (abs.includes('../') && loopSafetyCounter++ < 20) { // Prevent infinite loops
+			const before = abs;
+			abs = abs.replace(/\/([^\/]+\/)?\.\.\//g, '/'); // Resolve "../"
+			if (before === abs) {
+				break; // Exit if no replacements were made
+			}
+		}
+
+		abs = abs.replace(/\/\.\//g, '/'); // Resolve "/./"
+		abs = abs.replace(/\/\/+/g, '/'); // Remove duplicate slashes
+
+		return parsedBase.protocol + "//" + abs; // Absolute URL is ready
 	}
 
 	function modifyInlineScripts(htmlString) {
