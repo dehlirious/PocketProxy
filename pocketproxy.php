@@ -5,6 +5,13 @@ if (file_exists($captchascript)) {
 }
 
 $config = [
+	//By default, password protection is disabled. If this setting is changed password protection will be enabled.
+	//This password is used to restrict access to PocketProxy via password protection
+	'lockedPassword' => 'vErYl0ngPasswordPh@se',
+	
+	//Specifies the duration of the session in hours before requiring the password again.
+	'lockedSessionLength' => '3',
+	
 	// If you have a HTTPS:// website,  you need to set this to "https" otherwise there will be bugs and content(css/js) won't load properly!
 	// If you are on HTTP, this needs to be set to "http"
 	'httpvariable' => 'https',
@@ -65,7 +72,7 @@ $config = [
 ];
 
 class Proxy {
-	public $a, $maxdl, $forceCORS, $blacklistlog, $cce, $blacklistPatterns, $CaptchaSites,
+	public $a, $maxdl, $forceCORS, $blacklistlog, $cce, $blacklistPatterns, $CaptchaSites, $Lpassword, $LsessionL,
 		$httpvariable, $whitelistPatterns, $disallowLocal, $startURL, $landingExampleURL, $requiredExtensions;
 	
 	public function __construct($config) {
@@ -84,7 +91,10 @@ class Proxy {
 			$this->getHostnamePattern($_SERVER['SERVER_NAME']),
 			$this->getHostnamePattern("httpbin.org"),
 		];
+		//
 
+		$this->Lpassword = $config['lockedPassword'];
+		$this->LsessionL = $config['lockedSessionLength'];
 		$this->CaptchaSites = $config['captchasites'];
 		$this->CaptchaAgents = $config['captchaagents'];
 
@@ -434,6 +444,49 @@ class Proxy {
 		}
 	}
 
+
+	/**
+	 * Handles access control for the application.
+	 *
+	 * This function manages access control by enforcing password protection.
+	 * If the password is correct, it sets session variables to indicate successful login.
+	 * If no password is provided or if the password is incorrect, it displays a login form.
+	 */
+	public function handleAccess() {
+		if ($this->Lpassword !== 'vErYl0ngPasswordPh@se') {
+			session_name('MugglerLugglerDuggler');
+			session_start(); // Start the session only when needed
+		}
+		
+		if (isset($_POST['privsubmit_pwd'])) {
+			$pass = isset($_POST['passwd']) ? $_POST['passwd'] : '';
+
+			if ($pass != $this->Lpassword) {
+				$this->showForm("Wrong password");
+				exit();
+			} else {
+				$_SESSION['loggedin'] = true;
+				$_SESSION['start_time'] = time();
+				$_SESSION['expire_time'] = $_SESSION['start_time'] + ($this->LsessionL * 60 * 60);
+			}
+		} else {
+			if ((!isset($_SESSION['loggedin']) || !$_SESSION['loggedin'] || time() >= $_SESSION['expire_time']) && $this->Lpassword !== 'vErYl0ngPasswordPh@se') {
+				$this->showForm();
+				exit();
+			}
+		}
+	}
+	
+	/**
+	 * Displays the login form.
+	 */
+	public function showForm($error="Login"){
+		echo '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Login</title><meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"><style>body { background: #f8f9fa; }.error { font: 24px/1.5 sans-serif; color: #dc3545; }</style></head>
+		<body><div class="container mt-5"><div class="row justify-content-center"><div class="col-md-6 text-center"><p class="error">' . $error . '</p><form action="' . $_SERVER['REQUEST_URI'] . '" method="post" name="pwd"><label for="passwd" class="visually-hidden">Password:</label><input class="form-control mb-3" name="passwd" type="password" id="passwd" required>
+		<button class="btn btn-primary" type="submit" name="privsubmit_pwd">Login</button></form></div></div></div></body></html>'; 
+	}
+
 	//Makes an HTTP request via cURL, using request data that was passed directly to this script.
 	public function makeRequest($url) {
 		//To-Do: Remove this entirely. First, determine if they're windows/linux/mac, and set a predefined useragent based off that.
@@ -662,7 +715,7 @@ class Proxy {
 		}
 
 		// Set session configuration
-		ini_set('session.cookie_httponly', '1'); // Prevent client-side script access to cookies
+		@ini_set('session.cookie_httponly', '1'); // Prevent client-side script access to cookies
 
 		if ((in_array($domain, $this->CaptchaSites) || $isUserAgentMatch) &&
 			(class_exists('Gregwar\\Captcha\\PhraseBuilder') && class_exists('Gregwar\\Captcha\\CaptchaBuilder')) && extension_loaded("gd")) {
@@ -916,6 +969,7 @@ class Proxy {
 }
 
 $proxy = new Proxy($config);
+$proxy->handleAccess();
 $html = "
 <html>
 
