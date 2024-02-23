@@ -544,7 +544,7 @@ class Proxy {
 			"strict-transport-security", "report-to", "Host",
 			"x-content-type-options", "cross-origin-opener-policy-report-only",
 			"content-security-policy", "x-frame-options", "x-robots-tag",
-			"x-xss-protection", "X-Frame-Options", "Origin",
+			"x-xss-protection", "X-Frame-Options", "Origin", "ETag", "X-UIDH", 
 			"User-Agent", "Pragma", "Upgrade-Insecure-Requests",
 			"Client-IP", "X-Real-IP", "X-Forwarded-For",
 			"HTTP_CF_CONNECTING_IP", "REMOTE_ADDR", "HTTP_X_FORWARDED_FOR", "HTTP_CLIENT_IP",
@@ -1373,6 +1373,10 @@ if (stripos($contentType, "text/html") !== false) {
 	function modifyUrl(url) {
 		try {
 			// Modifies the given URL to include the proxy prefix.
+			if (typeof url === 'object') {
+				url = JSON.stringify(url);
+			}
+			
 			if (typeof url === 'string') {
 				if (!url.includes(proxyPrefix)) {
 					var urlObj = parseURI(url);
@@ -2190,7 +2194,7 @@ if (stripos($contentType, "text/html") !== false) {
 
 	// Properties to disable
 	const propertiesToDisable = [
-		'geolocation', 'getCurrentPosition', 'watchPosition', 'geolocationServicesEnabled', 'geolocationPermissionGranted',
+		'Geolocation', 'getCurrentPosition', 'watchPosition', 'geolocationServicesEnabled', 'geolocationPermissionGranted',
 		'webkitGeolocation', 'hardwareConcurrency', 'platform', 'oscpu', 'plugins', 'product', 'vendor', 'appVersion',
 		'productSub', 'vendorSub', 'deviceMemory', 'userAgent', 'appName', 'maxTouchPoints', 'mediaDevices', 'getBattery',
 		'battery', 'getUserMedia', 'webkitStorageInfo', 'webkitVisibilityState', 'webkitHidden', 'webkitGetUserMedia',
