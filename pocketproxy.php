@@ -624,6 +624,34 @@ class Proxy {
 		//to be output together--separate them.
 		$responseHeaders = substr($response, 0, $headerSize);
 		$responseBody = substr($response, $headerSize);
+		
+		// Extract cookies from response headers
+		preg_match_all('/^Set-Cookie:\s*([^;]*)/mi', $responseHeaders, $matches);
+		$cookies = array();
+		foreach ($matches[1] as $item) {
+			// Parse the cookie string into name, value, and attributes
+			parse_str($item, $cookie);
+
+			// Prefix all cookie names with the domain name
+			foreach ($cookie as $name => $value) {
+				$new_name = $prefix = str_replace('.', '', $this->getDomain($url)) . '_' . $name;
+				$cookie[$new_name] = $value;
+				unset($cookie[$name]); // Remove the old cookie name
+			}
+
+			// Rebuild the cookie string
+			$cookie_string = http_build_query($cookie, '', '; ');
+
+			// Add the modified cookie to the array
+			$cookies[] = $cookie_string;
+		}
+
+		// Set the extracted and modified cookies
+		foreach ($cookies as $cookie_string) {
+			// Set the cookie
+			header('Set-Cookie: ' . $cookie_string, false);
+		}
+		
 
 		return ["headers" => $responseHeaders, "body" => $responseBody, "responseInfo" => $responseInfo, ];
 	}
@@ -1502,7 +1530,7 @@ if (stripos($contentType, "text/html") !== false) {
 
         // Simplify the extracted domain to ensure it's a valid cookie name part
         // Removing periods and replacing them with underscores
-        return extractedDomain.replace(/\./g, '_');
+        return extractedDomain.replace(/\./g, '');
     }
 
     var originalCookieDescriptor = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie');
