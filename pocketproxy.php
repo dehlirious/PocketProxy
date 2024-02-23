@@ -1476,40 +1476,65 @@ if (stripos($contentType, "text/html") !== false) {
 		return domain;
 	}
 
-	// Store the original document.cookie descriptor
-	var originalCookieDescriptor = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie');
+    // Function to dynamically extract a domain from a URL provided in the query parameters
+    function extractDomainFromQueryParams() {
+        // Parse the current URL to access query parameters
+        var currentUrl = new URL(window.location.href);
+        var queryParams = currentUrl.searchParams;
 
-// Simplify the domain extraction for cookie name prefixing
-function simplifyDomain(domain) {
-  // Remove leading periods and replace remaining periods with underscores to ensure a valid cookie name
-  return domain.replace(/^\./, '').replace(/\./g, '_');
-}
+        // Initialize a variable to hold the domain extracted from a URL parameter
+        var extractedDomain = '';
+
+        // Specify the query parameter that contains the URL from which the domain should be extracted
+        var urlParam = queryParams.get('ProxyForm') || queryParams.toString();
+
+        // Check if the URL parameter is present and contains a value
+        if (urlParam) {
+            try {
+                // Attempt to construct a URL object from the parameter value to extract the hostname
+                var url = new URL(decodeURIComponent(urlParam));
+                extractedDomain = url.hostname;
+            } catch (e) {
+                console.error("Error extracting domain from URL parameter:", e);
+                return ''; // Return empty string in case of error
+            }
+        }
+
+        // Simplify the extracted domain to ensure it's a valid cookie name part
+        // Removing periods and replacing them with underscores
+        return extractedDomain.replace(/\./g, '_');
+    }
+
+    var originalCookieDescriptor = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie');
+
+    Object.defineProperty(document, 'cookie', {
+        get: function() {
+            return originalCookieDescriptor.get.call(this); // Use the original getter
+        },
+        set: function(value) {
+            // Extract the domain from the query parameters
+            var domainPrefix = extractDomainFromQueryParams();
+
+            // Proceed only if a domain was successfully extracted
+            if (domainPrefix) {
+                // Prefix the cookie name with the extracted domain
+                var firstEqualIndex = value.indexOf('=');
+                var cookieName = value.substring(0, firstEqualIndex);
+                var modifiedCookieName = domainPrefix + '_' + cookieName;
+                var newValue = modifiedCookieName + value.substring(firstEqualIndex);
+
+                // Call the original setter with the modified cookie value
+                originalCookieDescriptor.set.call(this, newValue);
+            } else {
+                // If no domain was extracted, set the cookie normally
+                originalCookieDescriptor.set.call(this, value);
+            }
+        },
+        configurable: true // Ensure it can be redefined later if necessary
+    });
 
 
-Object.defineProperty(document, 'cookie', {
-  get: function() {
-    return originalCookieDescriptor.get.call(this); // Use the original getter
-  },
-  set: function(value) {
-    // Split cookie string to find the domain attribute
-    var parts = value.split(';');
-    var domainPart = parts.find(part => part.trim().startsWith('domain='));
-    var domain = domainPart ? domainPart.split('=')[1] : document.domain;
-    
-    // Simplify and prepare domain for prefixing
-    var simplifiedDomain = simplifyDomain(domain);
-    
-    // Prefix the cookie name with the simplified domain
-    var firstEqualIndex = value.indexOf('=');
-    var cookieName = value.substring(0, firstEqualIndex);
-    var modifiedCookieName = simplifiedDomain + '_' + cookieName;
-    var newValue = modifiedCookieName + value.substring(firstEqualIndex);
-    
-    // Call the original setter with the modified cookie value
-    originalCookieDescriptor.set.call(this, newValue);
-  },
-  configurable: true // Ensure it can be redefined later if necessary
-});
+
 
 
 
