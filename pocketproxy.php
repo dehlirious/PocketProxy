@@ -267,14 +267,16 @@ class Proxy {
 	 */
 	public function rel2abs($rel, $base) {
 		if (empty($rel)) {
-			//$rel = ".";
+			$rel = "";
 		}
 		if (parse_url($rel, PHP_URL_SCHEME) != "" || strpos($rel, "//") === 0) {
 			return $rel; // Return if already an absolute URL
 		}
-		if ($rel[0] == "#" || $rel[0] == "?") {
+		
+		if (!empty($rel) && ($rel[0] == "#" || $rel[0] == "?")) {
 			return $base . $rel; // Queries and anchors
 		}
+
 
 		// Validate the base URL
 		$parsedBase = parse_url($base);
@@ -285,7 +287,7 @@ class Proxy {
 		extract($parsedBase); // Parse base URL and convert to local variables: $scheme, $host, $path
 
 		$path = isset($path) ? preg_replace("#/[^/]*$#", "", $path) : "/"; // Remove non-directory element from path
-		if ($rel[0] == "/") {
+		if (!empty($rel) && $rel[0] == "/") {
 			$path = ""; // Destroy path if relative url points to root
 		}
 
