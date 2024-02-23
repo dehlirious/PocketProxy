@@ -652,7 +652,7 @@ class Proxy {
 		foreach ($cookies as $cookie_string) {
 			list($name, $value) = explode('=', $cookie_string, 2);
 			$value = trim($value);
-			if ($value !== "DELETE") {
+			if (!empty($value) && $value !== "DELETE") {
 				// Set the cookie
 				header('Set-Cookie: ' . $cookie_string, false);
 			}
