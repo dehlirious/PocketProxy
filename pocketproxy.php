@@ -648,8 +648,12 @@ class Proxy {
 
 		// Set the extracted and modified cookies
 		foreach ($cookies as $cookie_string) {
-			// Set the cookie
-			header('Set-Cookie: ' . $cookie_string, false);
+			list($name, $value) = explode('=', $cookie_string, 2);
+			$value = trim($value);
+			if ($value !== "DELETE") {
+				// Set the cookie
+				header('Set-Cookie: ' . $cookie_string, false);
+			}
 		}
 		
 
@@ -1309,6 +1313,8 @@ if (stripos($contentType, "text/html") !== false) {
 		console.error("Error in modifying XMLHttpRequest:", error);
 	}
 
+  
+
 	try {
 		if (window.fetch) {
 			var originalFetch = window.fetch;
@@ -1489,78 +1495,6 @@ if (stripos($contentType, "text/html") !== false) {
 
 	//newly added
 
-	function extractDomain(url) {
-		var domain;
-		// Find & remove protocol (http, ftp, etc.) and get domain
-		if (url.indexOf("://") > -1) {
-			domain = url.split('/')[2];
-		} else {
-			domain = url.split('/')[0];
-		}
-
-		// Find & remove port number
-		domain = domain.split(':')[0];
-
-		return domain;
-	}
-
-    // Function to dynamically extract a domain from a URL provided in the query parameters
-    function extractDomainFromQueryParams() {
-        // Parse the current URL to access query parameters
-        var currentUrl = new URL(window.location.href);
-        var queryParams = currentUrl.searchParams;
-
-        // Initialize a variable to hold the domain extracted from a URL parameter
-        var extractedDomain = '';
-
-        // Specify the query parameter that contains the URL from which the domain should be extracted
-        var urlParam = queryParams.get('ProxyForm') || queryParams.toString();
-
-        // Check if the URL parameter is present and contains a value
-        if (urlParam) {
-            try {
-                // Attempt to construct a URL object from the parameter value to extract the hostname
-                var url = new URL(decodeURIComponent(urlParam));
-                extractedDomain = url.hostname;
-            } catch (e) {
-                console.error("Error extracting domain from URL parameter:", e);
-                return ''; // Return empty string in case of error
-            }
-        }
-
-        // Simplify the extracted domain to ensure it's a valid cookie name part
-        // Removing periods and replacing them with underscores
-        return extractedDomain.replace(/\./g, '');
-    }
-
-    var originalCookieDescriptor = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie');
-
-    Object.defineProperty(document, 'cookie', {
-        get: function() {
-            return originalCookieDescriptor.get.call(this); // Use the original getter
-        },
-        set: function(value) {
-            // Extract the domain from the query parameters
-            var domainPrefix = extractDomainFromQueryParams();
-
-            // Proceed only if a domain was successfully extracted
-            if (domainPrefix) {
-                // Prefix the cookie name with the extracted domain
-                var firstEqualIndex = value.indexOf('=');
-                var cookieName = value.substring(0, firstEqualIndex);
-                var modifiedCookieName = domainPrefix + '_' + cookieName;
-                var newValue = modifiedCookieName + value.substring(firstEqualIndex);
-
-                // Call the original setter with the modified cookie value
-                originalCookieDescriptor.set.call(this, newValue);
-            } else {
-                // If no domain was extracted, set the cookie normally
-                originalCookieDescriptor.set.call(this, value);
-            }
-        },
-        configurable: true // Ensure it can be redefined later if necessary
-    });
-
 
 
 
@@ -1697,6 +1631,7 @@ if (stripos($contentType, "text/html") !== false) {
 	} catch (error) {
 		console.error("Error in navigator.sendBeacon interception setup:", error);
 	}
+	
 
 	try {
 		const OriginalImage = Image;
@@ -1980,7 +1915,7 @@ if (stripos($contentType, "text/html") !== false) {
 				if (!url.includes(proxyPrefix)) {
 					var urlObj = parseURI(url);
 					if (urlObj) {
-						url = rel2abs(window.location.href, urlObj.href);
+						url = rel2abs(urlObj.href, "http://" + extractDomainFromQueryParams());
 						if (url.indexOf(proxyPrefix) === -1) {
 							url = proxyPrefix + url;
 							//console.log("ModifyURL: Modified " + url);
@@ -2007,9 +1942,150 @@ if (stripos($contentType, "text/html") !== false) {
 			return url;
 		} catch (error) {
 			console.error("Error in modifyUrl:", error);
+			console.trace();
 			return url; // Return the original URL on error.
 		}
 	}
+	
+
+	function extractDomain(url) {
+		var domain;
+		// Find & remove protocol (http, ftp, etc.) and get domain
+		if (url.indexOf("://") > -1) {
+			domain = url.split('/')[2];
+		} else {
+			domain = url.split('/')[0];
+		}
+
+		// Find & remove port number
+		domain = domain.split(':')[0];
+
+		return domain;
+	}
+
+    // Function to dynamically extract a domain from a URL provided in the query parameters
+    function extractDomainFromQueryParams() {
+        // Parse the current URL to access query parameters
+        var currentUrl = new URL(window.location.href);
+        var queryParams = currentUrl.searchParams;
+
+        // Initialize a variable to hold the domain extracted from a URL parameter
+        var extractedDomain = '';
+
+        // Specify the query parameter that contains the URL from which the domain should be extracted
+        var urlParam = queryParams.get('ProxyForm') || queryParams.toString();
+
+        // Check if the URL parameter is present and contains a value
+        if (urlParam) {
+            try {
+                // Attempt to construct a URL object from the parameter value to extract the hostname
+                var url = new URL(decodeURIComponent(urlParam));
+                extractedDomain = url.hostname;
+            } catch (e) {
+                console.error("Error extracting domain from URL parameter:", e);
+                return ''; // Return empty string in case of error
+            }
+        }
+
+        // Simplify the extracted domain to ensure it's a valid cookie name part
+        // Removing periods and replacing them with underscores
+        return extractedDomain;
+    }
+
+    var originalCookieDescriptor = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie');
+
+    Object.defineProperty(document, 'cookie', {
+        get: function() {
+            return originalCookieDescriptor.get.call(this); // Use the original getter
+        },
+        set: function(value) {
+            // Extract the domain from the query parameters
+            var domainPrefix = extractDomainFromQueryParams().replace(/\./g, '');;
+
+            // Proceed only if a domain was successfully extracted
+            if (domainPrefix) {
+                // Prefix the cookie name with the extracted domain
+                var firstEqualIndex = value.indexOf('=');
+                var cookieName = value.substring(0, firstEqualIndex);
+                var modifiedCookieName = domainPrefix + '_' + cookieName;
+                var newValue = modifiedCookieName + value.substring(firstEqualIndex);
+				
+				var newValue = newValue.replace(/domain=[^;]+/, 'domain=.' + extractDomain(proxyPrefix));
+				
+				console.log("Modified Cookie: ", newValue);
+				
+                // Call the original setter with the modified cookie value
+                originalCookieDescriptor.set.call(this, newValue);
+            } else {
+                // If no domain was extracted, set the cookie normally
+                originalCookieDescriptor.set.call(this, value);
+            }
+        },
+        configurable: true // Ensure it can be redefined later if necessary
+    });
+	
+const originalActiveXObject = window.ActiveXObject;
+  if (originalActiveXObject) {
+    window.ActiveXObject = function(type) {
+      if (type === "Msxml2.XMLHTTP" || type === "Msxml3.XMLHTTP" || type === "Microsoft.XMLHTTP") {
+        // Implement the interception logic here
+        // Note: Modifying ActiveX objects for network requests is complex and may not be fully feasible
+        // due to the limitations in controlling proprietary Internet Explorer features.
+        console.log(`Intercepted ActiveXObject creation of type: \${type}`);
+        // This is a simplistic approach and may not work for actual request interception/modification
+        return new originalActiveXObject(type);
+      }
+      return new originalActiveXObject(type);
+    };
+  }
+  
+  const originalSendBeacon = navigator.sendBeacon.bind(navigator);
+  navigator.sendBeacon = function(url, data) {
+    const modifiedUrl = modifyUrl(url);
+    return originalSendBeacon(modifiedUrl, data);
+  };
+  
+  // Override dynamic script imports
+  const originalImport = window.importScripts;
+  if (originalImport) {
+    window.importScripts = function(...urls) {
+      const modifiedUrls = urls.map(url => modifyUrl(url));
+      return originalImport.apply(this, modifiedUrls);
+    };
+  }
+  
+  
+  if (window.XDomainRequest) {
+    // Save a reference to the original XDomainRequest
+    var originalXDomainRequest = window.XDomainRequest;
+
+    // Define a new implementation of XDomainRequest
+    window.XDomainRequest = function() {
+      var xdr = new originalXDomainRequest();
+
+      // Override the open method
+      var originalOpen = xdr.open;
+      xdr.open = function(method, url) {
+        // Here you can modify the URL or log the request
+        console.log('XDomainRequest opened for URL:', url);
+        // Call the original open method with potentially modified arguments
+        return originalOpen.apply(this, [method, modifyUrl(url)]);
+      };
+
+      // Implement similar overrides for other methods like send() if needed
+
+      return xdr;
+    };
+	
+	/*
+  // Use Object.defineProperty to override sendBeacon and make it non-writable
+  Object.defineProperty(navigator, 'sendBeacon', {
+    value: modifiedSendBeacon,
+    writable: false, // This prevents further modifications
+    configurable: false, // This prevents the property from being deleted or reconfigured
+  });
+	
+	*/
 
 })();
 EOF;
