@@ -32,7 +32,7 @@
     </a>
 </p>
 
-PocketProxy is a straightforward PHP web proxy tailored for individuals seeking an uncomplicated method to bypass internet content filters, enhance online privacy, or browse the internet anonymously.
+PocketProxy is an advanced PHP web proxy designed for easy bypassing of internet content filters, boosting online privacy, and anonymous browsing, catering specifically to users in need of a simple yet powerful online experience.
 
 Experience PocketProxy in action: [https://zrr.us/pocketproxy.php](https://zrr.us/pocketproxy.php)
 
@@ -63,8 +63,64 @@ PocketProxy has several known limitations. Some of them may be fixed in future r
 
 * YouTube does not work (try [youtubeunblocked.live](youtubeunblocked.live))
 * Many MANY websites can display broken qualities when they are javascript dependant.
-* WebSocket connections are not enabled as of yet
-* Probably more, but as I come across limitations I tend to forget them before writing them down
+* WebSocket connections are not supported yet
+* Probably more! Let me know!
+
+## Network Interceptions and Disabled Features
+
+Unfortunately, JavaScript poses significant challenges. While I intercept and rewrite numerous URLs, there are still gaps to address. 
+Here are several methods I intercept and overwrite to ensure that network requests are routed through the proxy script instead of directly to the original website:
+
+<details>
+  <summary>Click to reveal spoiler</summary>
+
+| Method | Description | Method | Description |
+| ------ | ----------- | ------ | ----------- |
+| document.createElement + Element.prototype.setAttribute | Alter URL attributes for new elements. `var potentialUrlAttributes = ["src", "rel", "href", "data-src", "data-href", "action", "srcset", "poster", "hreflang", "cite", "data-url", "data-link", "data-file", "data-image", "data-video", "data-audio", "data-source", "formaction"];` | "modifyInlineScripts()" | Modifies script src attributes, inline scripts, and URLs. |
+| XMLHttpRequest | Ensure all URLs are prefixed with the proxyPrefix | Fetch | Ensure all URLs are prefixed with the proxyPrefix |
+| WebSocket | Not yet supported via PocketProxy but the URL is rewritten anyway. | Form submissions | Handled via php typically but covered regardless. |
+| window.open | Ensure all URLs are prefixed with the proxyPrefix | History manipulation | Ensure navigation is consistent with proxy routing. |
+| document.write and writeln | Search for and modify URLs in content. | $.ajax | Ensure all URLs are prefixed with the proxyPrefix |
+| window.axios | Ensure all URLs are prefixed with the proxyPrefix | Modifications to existing stylesheets | Replace any url() calls in `document.styleSheets` and intercept inline styles. |
+| window.Image | Ensure all URLs are prefixed with the proxyPrefix | window.fetch | Ensure all URLs are prefixed with the proxyPrefix |
+| window.Request | Ensure all URLs are prefixed with the proxyPrefix | Navigation methods | 'replace' and 'assign' |
+| document.execCommand | ["createlink", "insertimage"] | meta refresh | Ensure all URLs are prefixed with the proxyPrefix |
+| anchor pings | Ensure all URLs are prefixed with the proxyPrefix | window.ActiveXObject.open | Ensure all URLs are prefixed with the proxyPrefix |
+| document.cookie | Rewritten so that cookies are functional. | window.importScripts |  |
+| window.XDomainRequest | Ensure all URLs are prefixed with the proxyPrefix | And More! | This readme.md is not consistently updated, this list *should* forever be growing |
+
+**Disabled Javascript objects:**
+This column lists specific JavaScript global objects, APIs, or functionalities that have been intentionally disabled or restricted.
+These items typically offer various capabilities or access to system resources and information, which, for security, privacy, or performance reasons have been disabled.
+
+| Disabled Feature | Description | Disabled Feature | Description |
+| ---------------- | ----------- | ---------------- | ----------- |
+| window.webkitStorageInfo |  | document.webkitVisibilityState |  |
+| document.webkitHidden |  | window.webkitDirectory |  |
+| window.webkitIntent |  | document.referrer |  |
+| window.performance |  | window.history |  |
+|   |   | And More! | This readme.md is not consistently updated, this list *should* forever be growing |
+
+
+**Disabled Javascript Objects/Prototypes:**
+This column details the prototypes associated with certain JavaScript objects that have been disabled. In JavaScript, the prototype is a mechanism through which objects inherit features from one another. By disabling specific prototypes, the ability for objects to inherit properties or methods from these prototypes is removed or altered.
+
+| Disabled Object | Description | Disabled Prototype | Description |
+| --------------- | ----------- | ------------------ | ----------- |
+| navigator | Excludes 'plugins', 'storage', 'serviceWorker', 'webdriver', 'clipboard', 'language', 'languages', 'credentials'. | Worker.prototype | Methods and properties specific to Worker instances. |
+| Worker | Global scope for web workers. | MediaDevices.prototype | Methods and properties specific to MediaDevices instances. |
+| MediaRecorder | Global scope for media recording functionality. | MediaRecorder.prototype | Methods and properties specific to MediaRecorder instances. |
+
+
+**Future Thoughts for modification/removal:**
+
+- WebRTC
+- WebGL
+- OffscreenCanvas 
+
+
+</details>
+
 
 ## Contribute
 
