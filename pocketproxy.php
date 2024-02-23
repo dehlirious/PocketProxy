@@ -934,7 +934,7 @@ class Proxy {
 		}
 		
 		//Proxify "srcset" attributes in <img> tags.
-		foreach ($xpath->query("//img[@srcset]") as $element) {
+		foreach ($xpath->query("//*[@srcset]") as $element) {
 			$element->setAttribute("srcset", $this->proxifySrcset($element->getAttribute("srcset") , $url));
 		}
 		
@@ -960,12 +960,10 @@ class Proxy {
 			//For every element with the given attribute...
 			$attrContent = $element->getAttribute($attrName);
 			
-			if ($attrName == "href" && preg_match($noMatchRegex, $attrContent)) {
+			if (($attrName == "src" | $attrName == "href") && preg_match($noMatchRegex, $attrContent)) {
 				return;
 			}
-			if ($attrName == "src" && preg_match($noMatchRegex, $attrContent)) {
-				return;
-			}
+			
 			$attrContent = $this->rel2abs($attrContent, $url);
 			$attrContent = PROXY_PREFIX . $attrContent;
 			$element->setAttribute($attrName, $attrContent);
