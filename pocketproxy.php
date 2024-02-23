@@ -999,7 +999,7 @@ class Proxy {
 		}
 		
 		//Proxify any of these attributes appearing in any tag.
-		$proxifyAttributes = ["href", "src",
+		$proxifyAttributes = ["href", "src", "data-ccsl", "data-spl", "ping",
 			//These are untested but assumed to work rather well
 			'data-image-url', 'data-audio-url', 'data-source', 'data-iframe-url', 'data-script-url', 'data-style-url', 
 			'data-redirect-url', 'data-thumbnail-url', 'data-avatar-url', 'data-srcset', 'data-video-src', 'data-poster', 
