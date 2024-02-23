@@ -79,7 +79,7 @@ Here are several methods I intercept and overwrite to ensure that network reques
 | document.createElement + Element.prototype.setAttribute | Alter URL attributes for new elements. `var potentialUrlAttributes = ["src", "rel", "href", "data-src", "data-href", "action", "srcset", "poster", "hreflang", "cite", "data-url", "data-link", "data-file", "data-image", "data-video", "data-audio", "data-source", "formaction"];` | "modifyInlineScripts()" | Modifies script src attributes, inline scripts, and URLs. |
 | XMLHttpRequest | Ensure all URLs are prefixed with the proxyPrefix | Fetch | Ensure all URLs are prefixed with the proxyPrefix |
 | WebSocket | Not yet supported via PocketProxy but the URL is rewritten anyway. | Form submissions | Handled via php typically but covered regardless. |
-| window.open | Ensure all URLs are prefixed with the proxyPrefix | History manipulation | Ensure navigation is consistent with proxy routing. |
+| window.open | Ensure all URLs are prefixed with the proxyPrefix | X | X |
 | document.write and writeln | Search for and modify URLs in content. | $.ajax | Ensure all URLs are prefixed with the proxyPrefix |
 | window.axios | Ensure all URLs are prefixed with the proxyPrefix | Modifications to existing stylesheets | Replace any url() calls in `document.styleSheets` and intercept inline styles. |
 | window.Image | Ensure all URLs are prefixed with the proxyPrefix | window.fetch | Ensure all URLs are prefixed with the proxyPrefix |
@@ -98,7 +98,7 @@ These items typically offer various capabilities or access to system resources a
 | window.webkitStorageInfo |  | document.webkitVisibilityState |  |
 | document.webkitHidden |  | window.webkitDirectory |  |
 | window.webkitIntent |  | document.referrer |  |
-| window.performance |  | window.history |  |
+| window.performance |  |   |  |
 |   |   | And More! | This readme.md is not consistently updated, this list *should* forever be growing |
 
 
@@ -110,6 +110,7 @@ This column details the prototypes associated with certain JavaScript objects th
 | navigator | Excludes 'plugins', 'storage', 'serviceWorker', 'webdriver', 'clipboard', 'language', 'languages', 'credentials'. | Worker.prototype | Methods and properties specific to Worker instances. |
 | Worker | Global scope for web workers. | MediaDevices.prototype | Methods and properties specific to MediaDevices instances. |
 | MediaRecorder | Global scope for media recording functionality. | MediaRecorder.prototype | Methods and properties specific to MediaRecorder instances. |
+| history | Global scope for history API. | History.prototype | Methods and properties specific to History instances. |
 
 
 **Future Thoughts for modification/removal:**
