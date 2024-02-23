@@ -1995,7 +1995,7 @@ if (stripos($contentType, "text/html") !== false) {
 		if (originalActiveXObject) {
 			window.ActiveXObject = function(type) {
 				if (type === "Msxml2.XMLHTTP" || type === "Msxml3.XMLHTTP" || type === "Microsoft.XMLHTTP") {
-					console.log(`Intercepted ActiveXObject creation of type: ${type}`);
+					console.log(`Intercepted ActiveXObject creation of type: \${type}`);
 
 					// Create the original ActiveXObject instance
 					var originalObject = new originalActiveXObject(type);
@@ -2005,7 +2005,7 @@ if (stripos($contentType, "text/html") !== false) {
 					originalObject.open = function(method, url, async, user, password) {
 						// Modify the URL
 						var modifiedUrl = modifyUrl(url);
-						console.log(`Original URL: ${url}, Modified URL: ${modifiedUrl}`);
+						console.log(`Original URL: \${url}, Modified URL: \${modifiedUrl}`);
 
 						// Call the original 'open' method with the modified URL
 						return originalOpen.call(this, method, modifiedUrl, async, user, password);
