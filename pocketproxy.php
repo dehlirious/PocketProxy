@@ -1108,14 +1108,14 @@ $proxy->HandleCaptcha($url);
 $scheme = parse_url($url, PHP_URL_SCHEME);
 #var_dump($scheme);
 if (empty($scheme)) {
-    // If the URL doesn't contain a scheme
-    if (strpos($url, "//") === 0) {
-        // Assume that any supplied URLs starting with // are HTTP URLs.
-        $url = "http:" . $url;
-    } elseif (preg_match('~^https?://~i', $url) !== 1) {
-        // If the URL doesn't start with http:// or https://, assume it's HTTP.
-        $url = "http://" . $url;
-    }
+	// If the URL doesn't contain a scheme
+	if (strpos($url, "//") === 0) {
+		// Assume that any supplied URLs starting with // are HTTP URLs.
+		$url = "http:" . $url;
+	} elseif (preg_match('~^https?://~i', $url) !== 1) {
+		// If the URL doesn't start with http:// or https://, assume it's HTTP.
+		$url = "http://" . $url;
+	}
 }
 elseif (!preg_match("/^https?$/i", $scheme)) {
 	die('Error: Detected a "' . $scheme . '" URL. PocketProxy exclusively supports http[s] URLs.');
@@ -1225,8 +1225,189 @@ if (stripos($contentType, "text/html") !== false) {
 
 	// Extract the base URL from the current location to use in URL modifications.
 	var currentURL = window.location.href;
-	var params = currentURL.split("{$_SERVER["SCRIPT_NAME"]}?")[1];
+	var params = currentURL.split("{$_SERVER["SCRIPT_NAME "]}?")[1];
 	var baseURL = decodeURIComponent(params || "");
+	
+	// List of attributes that potentially contain URLs to be modified.
+	var potentialUrlAttributes = ["src", "rel", "href", "data-src", "data-href", "action", "srcset", "poster", "hreflang", "cite", "data-url", "data-link", "data-file", "data-image", "data-video", "data-audio", "data-source", "formaction"];
+	var events = ["onclick", "onsubmit", "onload", "onerror", "onchange", "onmouseover", "onmouseout", "onkeydown", "onkeyup", "onfocus", "onblur", "ondblclick", "oncontextmenu", "onwheel", "onselect", "oninput", "oncopy", "oncut", "onpaste", "onmousemove", "onmouseup", "onmousedown", "onmouseenter", "onmouseleave", "onresize", "onscroll", "ontouchstart", "ontouchend", "ontouchmove", "onabort", "onbeforeunload", "oncanplay", "oncanplaythrough", "onmouseenter", "ondurationchange", "onended", "oninput", "oninvalid", "onkeydown", "onkeypress", "onkeyup", "onloadstart", "onloadeddata", "onloadedmetadata", "onloadend", "onmessage", "onoffline", "ononline", "onpagehide", "onpageshow", "onpause", "onplay", "onplaying", "onprogress", "onratechange", "onreset", "onseeked", "onseeking", "onstalled", "onsuspend", "ontimeupdate", "onvolumechange", "onwaiting",];
+
+	function extractDomain(url) {
+		var domain;
+		// Find & remove protocol (http, ftp, etc.) and get domain
+		if (url.indexOf("://") > -1) {
+			domain = url.split('/')[2];
+		} else {
+			domain = url.split('/')[0];
+		}
+
+		// Find & remove port number
+		domain = domain.split(':')[0];
+
+		return domain;
+	}
+
+	// Function to dynamically extract a domain from a URL provided in the query parameters
+	function extractDomainFromQueryParams() {
+		// Parse the current URL to access query parameters
+		var currentUrl = new URL(window.location.href);
+		var queryParams = currentUrl.searchParams;
+
+		// Initialize a variable to hold the domain extracted from a URL parameter
+		var extractedDomain = '';
+
+		// Specify the query parameter that contains the URL from which the domain should be extracted
+		var urlParam = queryParams.get('ProxyForm') || queryParams.toString();
+
+		// Check if the URL parameter is present and contains a value
+		if (urlParam) {
+			try {
+				// Attempt to construct a URL object from the parameter value to extract the hostname
+				var url = new URL(decodeURIComponent(urlParam));
+				extractedDomain = url.hostname;
+			} catch (e) {
+				console.error("Error extracting domain from URL parameter:", e);
+				return ''; // Return empty string in case of error
+			}
+		}
+
+		// Simplify the extracted domain to ensure it's a valid cookie name part
+		// Removing periods and replacing them with underscores
+		return extractedDomain;
+	}
+
+	function extractUrl(cssValue) {
+		// Extracts URL from the cssValue like "url('http://example.com')"
+		const matches = cssValue.match(/url\(['"]?(.*?)['"]?\)/);
+		return matches ? matches[1] : '';
+	}
+
+	function modifyCSSRule(cssText) {
+		// Replaces all url() values within a CSS text with modified URLs
+		return cssText.replace(/url\((['"]?)(.+?)\1\)/g, (match, quote, url) => `url(\${quote}\${modifyUrl(url)}\${quote})`);
+	}
+
+	// Helper functions for URL parsing and modifications.
+	function parseURI(url) {
+		// Parses a URL and returns its components.
+		try {
+			var m = String(url).replace(/^\s+|\s+$/g, "").match(/^([^:\/?#]+:)?(\/\/(?:[^:@]*(?::[^:@]*)?@)?(([^:\/?#]*)(?::(\d*))?))?([^?#]*)(\?[^#]*)?(#[\s\S]*)?/);
+			return (m ? {
+				href: m[0] || "",
+				protocol: m[1] || "",
+				authority: m[2] || "",
+				host: m[3] || "",
+				hostname: m[4] || "",
+				port: m[5] || "",
+				pathname: m[6] || "",
+				search: m[7] || "",
+				hash: m[8] || ""
+			} : null);
+		} catch (error) {
+			console.error("Error in parseURI:", error);
+			return null;
+		}
+	}
+
+	/**
+	 * Not perfect but pretty good
+	 *
+	 * { rel: "../../../updir/page2.html", base: "http://www.example.com/dir/subdir/another/page1.html", expected: "http://www.example.com/updir/page2.html" },
+	 * FAIL: Expected http://www.example.com/updir/page2.html, got http://www.example.com/dir/updir/page2.html rel2abs.php:161:17
+	 * { rel: "../../../page2.html", base: "http://www.example.com/dir1/dir2/dir3/dir4/", expected: "http://www.example.com/page2.html" }, 
+	 * FAIL: Expected http://www.example.com/page2.html, got http://www.example.com/dir1/dir2/page2.html
+	 *
+	 **/
+	function rel2abs(rel, base) {
+		if (!rel) {
+			//rel = ".";
+		}
+		if (new URL(rel, base).href === rel || rel.startsWith("//")) {
+			return rel; // Return if already an absolute URL
+		}
+		if (rel[0] === "#" || rel[0] === "?") {
+			return base + rel; // Queries and anchors
+		}
+
+		// Validate the base URL
+		let parsedBase;
+		try {
+			parsedBase = new URL(base);
+		} catch (e) {
+			// Handle error: invalid base URL
+			return false; // Or handle as appropriate for your use case
+		}
+
+		let {
+			pathname
+		} = parsedBase;
+		pathname = pathname.replace(/\/[^\/]*$/, ""); // Remove non-directory element from path
+		if (rel[0] === "/") {
+			pathname = ""; // Destroy path if relative url points to root
+		}
+
+		// Add condition for default HTTPS port (443)
+		// in javascript, host already has the port!
+		//const port = parsedBase.port && parsedBase.port !== "80" && parsedBase.port !== "443" ? ":" + parsedBase.port : "";
+
+		const auth = parsedBase.username ? parsedBase.username + (parsedBase.password ? ":" + parsedBase.password : "") + "@" : "";
+
+		let abs = `\${auth}\${parsedBase.host}\${pathname}/\${rel}`; // Dirty absolute URL
+
+		// Ensure the loop that resolves "../" is safe against malformed inputs
+		let loopSafetyCounter = 0;
+		while (abs.includes('../') && loopSafetyCounter++ < 20) { // Prevent infinite loops
+			const before = abs;
+			abs = abs.replace(/\/([^\/]+\/)?\.\.\//g, '/'); // Resolve "../"
+			if (before === abs) {
+				break; // Exit if no replacements were made
+			}
+		}
+
+		abs = abs.replace(/\/\.\//g, '/'); // Resolve "/./"
+		abs = abs.replace(/\/\/+/g, '/'); // Remove duplicate slashes
+
+		return parsedBase.protocol + "//" + abs; // Absolute URL is ready
+	}
+
+	function modifyUrl(url) {
+		try {
+			// Modifies the given URL to include the proxy prefix.
+			if (typeof url === 'string') {
+				if (!url.includes(proxyPrefix)) {
+					var urlObj = parseURI(url);
+					if (urlObj) {
+						url = rel2abs(urlObj.href, "http://" + extractDomainFromQueryParams());
+						if (url.indexOf(proxyPrefix) === -1) {
+							url = proxyPrefix + url;
+							//console.log("ModifyURL: Modified " + url);
+						}
+					}
+				}
+			} else if (url instanceof Blob) {
+				// Convert Blob to data URL
+				const reader = new FileReader();
+				reader.readAsDataURL(url);
+				reader.onload = function() {
+					const dataUrl = reader.result;
+					// Apply modifications if necessary
+					const modifiedUrl = modifyUrl(dataUrl);
+					return modifiedUrl;
+				};
+			} else {
+				console.error(`Error in modifyUrl: URL is not a string. Received type: \${typeof url}`);
+				if (typeof url === 'object') {
+					console.log(`Object JSON: \${JSON.stringify(url)}`);
+				}
+				//console.trace(); // Log stack trace
+			}
+			return url;
+		} catch (error) {
+			console.error("Error in modifyUrl:", error);
+			console.trace();
+			return url; // Return the original URL on error.
+		}
+	}
 
 	try {
 		// Overriding the default createElement method to intercept element creation.
@@ -1244,8 +1425,6 @@ if (stripos($contentType, "text/html") !== false) {
 				});
 			}
 
-			// List of attributes that potentially contain URLs to be modified.
-			var potentialUrlAttributes = ["src", "rel", "href", "data-src", "data-href", "action", "srcset", "poster", "hreflang", "cite", "data-url", "data-link", "data-file", "data-image", "data-video", "data-audio", "data-source"];
 			potentialUrlAttributes.forEach(function(attributeName) {
 				if (element[attributeName] !== undefined) {
 					modifyUrlAttribute(attributeName);
@@ -1264,6 +1443,29 @@ if (stripos($contentType, "text/html") !== false) {
 	} else if (typeof Object.defineProperty === "undefined") {
 		console.error("Object.defineProperty is not supported in this browser.");
 	} else {
+		
+		function modifyInlineScripts(htmlString) {
+			// Parses the HTML string and modifies script src attributes.
+			try {
+				var parser = new DOMParser();
+				var doc = parser.parseFromString(htmlString, "text/html");
+				var scripts = doc.getElementsByTagName("script");
+
+				// Iterates over script tags to modify their src attributes.
+				for (var i = 0; i < scripts.length; i++) {
+					var script = scripts[i];
+					if (script.src) {
+						script.src = modifyUrl(script.src);
+					}
+				}
+
+				return new XMLSerializer().serializeToString(doc);
+			} catch (error) {
+				console.error("Error in modifyInlineScripts:", error);
+				return htmlString; // Return the original HTML string on error.
+			}
+		}
+		
 		// Overriding innerHTML and outerHTML to modify inline scripts and URLs.
 		try {
 			Object.defineProperty(Element.prototype, "innerHTML", {
@@ -1312,9 +1514,8 @@ if (stripos($contentType, "text/html") !== false) {
 	} catch (error) {
 		console.error("Error in modifying XMLHttpRequest:", error);
 	}
-
-  
-
+	
+	// Fetch
 	try {
 		if (window.fetch) {
 			var originalFetch = window.fetch;
@@ -1330,7 +1531,6 @@ if (stripos($contentType, "text/html") !== false) {
 	} catch (error) {
 		console.error("Error in modifying fetch:", error);
 	}
-
 
 	// Additional modifications to handle WebSocket, ServiceWorker, and form submissions.
 	try {
@@ -1455,8 +1655,7 @@ if (stripos($contentType, "text/html") !== false) {
 	} catch (error) {
 		console.error("Error in modifying document.write and writeln:", error);
 	}
-	
-	
+
 	//Rewrite $.ajax
 	if (typeof jQuery !== 'undefined') {
 		(function($) {
@@ -1491,14 +1690,7 @@ if (stripos($contentType, "text/html") !== false) {
 		}
 	}
 
-
-
 	//newly added
-
-
-
-
-
 
 	/**
 	 * Intercept and modify specified attributes of HTML elements that contain URL-like values.
@@ -1510,10 +1702,8 @@ if (stripos($contentType, "text/html") !== false) {
 		const originalSetAttribute = Element.prototype.setAttribute;
 
 		Element.prototype.setAttribute = function(name, value) {
-			const attributesToCheck = ['src', 'href', 'data', 'action', 'srcset', 'cite', 'formaction'];
-
 			// Check if the attribute name is one of the specified attributes to modify
-			if (attributesToCheck.includes(name.toLowerCase())) {
+			if (potentialUrlAttributes.includes(name.toLowerCase())) {
 				try {
 					// Only modify the attribute if the value looks like a URL.
 					// You might want to refine this check based on your needs.
@@ -1530,17 +1720,6 @@ if (stripos($contentType, "text/html") !== false) {
 			return originalSetAttribute.call(this, name, value);
 		};
 	})();
-
-	function extractUrl(cssValue) {
-		// Extracts URL from the cssValue like "url('http://example.com')"
-		const matches = cssValue.match(/url\(['"]?(.*?)['"]?\)/);
-		return matches ? matches[1] : '';
-	}
-
-	function modifyCSSRule(cssText) {
-		// Replaces all url() values within a CSS text with modified URLs
-		return cssText.replace(/url\((['"]?)(.+?)\1\)/g, (match, quote, url) => `url(\${quote}\${modifyUrl(url)}\${quote})`);
-	}
 
 	// Apply modifications to existing stylesheets
 	for (let sheet of document.styleSheets) {
@@ -1600,7 +1779,6 @@ if (stripos($contentType, "text/html") !== false) {
 		console.error("Error in Element's setAttribute interception setup:", error);
 	}
 
-
 	/**
 	 * Intercept and modify HTMLStyleElement textContent for URLs.
 	 */
@@ -1624,14 +1802,6 @@ if (stripos($contentType, "text/html") !== false) {
 	} catch (error) {
 		console.error("Error in HTMLStyleElement's textContent interception setup:", error);
 	}
-
-	try {
-		// Intercepting navigator.sendBeacon
-		navigator.sendBeacon = ((original) => (url, data) => original(modifyUrl(url), data))(navigator.sendBeacon.bind(navigator));
-	} catch (error) {
-		console.error("Error in navigator.sendBeacon interception setup:", error);
-	}
-	
 
 	try {
 		const OriginalImage = Image;
@@ -1660,9 +1830,8 @@ if (stripos($contentType, "text/html") !== false) {
 		console.error("Error in Image constructor interception setup:", error);
 	}
 
-
 	try {
-		// Intercept Fetch API and Request Constructor
+		// Intercept Request Constructor
 		const originalRequest = window.Request;
 		window.Request = function(input, init) {
 			try {
@@ -1690,9 +1859,9 @@ if (stripos($contentType, "text/html") !== false) {
 			window.location[method] = (url) => {
 				try {
 					// Check if the URL starts with http:// or https:// before modification
-					if (/^https?:\/\//i.test(url)) {
+					//if (/^https?:\/\//i.test(url)) {
 						url = modifyUrl(url);
-					}
+					//}
 				} catch (error) {
 					console.error(`Error intercepting location.\${method}:`, error);
 				}
@@ -1701,26 +1870,6 @@ if (stripos($contentType, "text/html") !== false) {
 		});
 	} catch (error) {
 		console.error("Error in location interception setup:", error);
-	}
-
-
-	try {
-		// Interception for SharedWorker, EventSource, and document.execCommand
-		const workerTypes = {
-			SharedWorker: window.SharedWorker,
-			EventSource: window.EventSource
-		};
-		Object.entries(workerTypes).forEach(([type, OriginalConstructor]) => {
-			window[type] = function(url, options) {
-				try {
-					return new OriginalConstructor(modifyUrl(url), options);
-				} catch (error) {
-					console.error(`Error intercepting \${type} creation:`, error);
-				}
-			};
-		});
-	} catch (error) {
-		console.error("Error in SharedWorker and EventSource interception setup:", error);
 	}
 
 	try {
@@ -1776,10 +1925,8 @@ if (stripos($contentType, "text/html") !== false) {
 		console.error("Error in HTMLMetaElement and HTMLAnchorElement interception setup:", error);
 	}
 
-	//beta
-	/*// A function to sanitize inline event handlers
+	// A function to sanitize inline event handlers
 	function sanitizeInlineEventHandlers(element) {
-		var events = ["onclick", "onsubmit", "onload", "onerror", "onchange", "onmouseover", "onmouseout", "onkeydown", "onkeyup"];
 		events.forEach(function(event) {
 			if (element.hasAttribute(event)) {
 				// Get the original event handler code
@@ -1798,296 +1945,297 @@ if (stripos($contentType, "text/html") !== false) {
 	}
 
 	// Apply the sanitization to the entire document body
-	function sanitizeAllInlineEventHandlers() {
+	try {
 		var allElements = document.getElementsByTagName("*");
 		for (var i = 0; i < allElements.length; i++) {
 			sanitizeInlineEventHandlers(allElements[i]);
 		}
-	}*/
-
-	// Helper functions for URL parsing and modifications.
-	function parseURI(url) {
-		// Parses a URL and returns its components.
-		try {
-			var m = String(url).replace(/^\s+|\s+$/g, "").match(/^([^:\/?#]+:)?(\/\/(?:[^:@]*(?::[^:@]*)?@)?(([^:\/?#]*)(?::(\d*))?))?([^?#]*)(\?[^#]*)?(#[\s\S]*)?/);
-			return (m ? {
-				href: m[0] || "",
-				protocol: m[1] || "",
-				authority: m[2] || "",
-				host: m[3] || "",
-				hostname: m[4] || "",
-				port: m[5] || "",
-				pathname: m[6] || "",
-				search: m[7] || "",
-				hash: m[8] || ""
-			} : null);
-		} catch (error) {
-			console.error("Error in parseURI:", error);
-			return null;
-		}
+	} catch (error) {
+		console.error("Error in sanitizeInlineEventHandlers:", error);
 	}
 
-	/**
-	 * Not perfect but pretty good
-	 *
-	 * { rel: "../../../updir/page2.html", base: "http://www.example.com/dir/subdir/another/page1.html", expected: "http://www.example.com/updir/page2.html" },
-	 * FAIL: Expected http://www.example.com/updir/page2.html, got http://www.example.com/dir/updir/page2.html rel2abs.php:161:17
-	 * { rel: "../../../page2.html", base: "http://www.example.com/dir1/dir2/dir3/dir4/", expected: "http://www.example.com/page2.html" }, 
-	 * FAIL: Expected http://www.example.com/page2.html, got http://www.example.com/dir1/dir2/page2.html
-	 *
-	 **/
-	function rel2abs(rel, base) {
-		if (!rel) {
-			//rel = ".";
-		}
-		if (new URL(rel, base).href === rel || rel.startsWith("//")) {
-			return rel; // Return if already an absolute URL
-		}
-		if (rel[0] === "#" || rel[0] === "?") {
-			return base + rel; // Queries and anchors
-		}
+	var originalCookieDescriptor = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie');
 
-		// Validate the base URL
-		let parsedBase;
-		try {
-			parsedBase = new URL(base);
-		} catch (e) {
-			// Handle error: invalid base URL
-			return false; // Or handle as appropriate for your use case
-		}
+	Object.defineProperty(document, 'cookie', {
+		get: function() {
+			return originalCookieDescriptor.get.call(this); // Use the original getter
+		},
+		set: function(value) {
+			// Extract the domain from the query parameters
+			var domainPrefix = extractDomainFromQueryParams().replace(/\./g, '');;
 
-		let { pathname } = parsedBase;
-		pathname = pathname.replace(/\/[^\/]*$/, ""); // Remove non-directory element from path
-		if (rel[0] === "/") {
-			pathname = ""; // Destroy path if relative url points to root
-		}
+			// Proceed only if a domain was successfully extracted
+			if (domainPrefix) {
+				// Prefix the cookie name with the extracted domain
+				var firstEqualIndex = value.indexOf('=');
+				var cookieName = value.substring(0, firstEqualIndex);
+				var modifiedCookieName = domainPrefix + '_' + cookieName;
+				var newValue = modifiedCookieName + value.substring(firstEqualIndex);
 
-		// Add condition for default HTTPS port (443)
-		// in javascript, host already has the port!
-		//const port = parsedBase.port && parsedBase.port !== "80" && parsedBase.port !== "443" ? ":" + parsedBase.port : "";
-
-		const auth = parsedBase.username ? parsedBase.username + (parsedBase.password ? ":" + parsedBase.password : "") + "@" : "";
-
-		let abs = `\${auth}\${parsedBase.host}\${pathname}/\${rel}`; // Dirty absolute URL
-
-		// Ensure the loop that resolves "../" is safe against malformed inputs
-		let loopSafetyCounter = 0;
-		while (abs.includes('../') && loopSafetyCounter++ < 20) { // Prevent infinite loops
-			const before = abs;
-			abs = abs.replace(/\/([^\/]+\/)?\.\.\//g, '/'); // Resolve "../"
-			if (before === abs) {
-				break; // Exit if no replacements were made
-			}
-		}
-
-		abs = abs.replace(/\/\.\//g, '/'); // Resolve "/./"
-		abs = abs.replace(/\/\/+/g, '/'); // Remove duplicate slashes
-
-		return parsedBase.protocol + "//" + abs; // Absolute URL is ready
-	}
-
-	function modifyInlineScripts(htmlString) {
-		// Parses the HTML string and modifies script src attributes.
-		try {
-			var parser = new DOMParser();
-			var doc = parser.parseFromString(htmlString, "text/html");
-			var scripts = doc.getElementsByTagName("script");
-
-			// Iterates over script tags to modify their src attributes.
-			for (var i = 0; i < scripts.length; i++) {
-				var script = scripts[i];
-				if (script.src) {
-					script.src = modifyUrl(script.src);
-				}
-			}
-
-			return new XMLSerializer().serializeToString(doc);
-		} catch (error) {
-			console.error("Error in modifyInlineScripts:", error);
-			return htmlString; // Return the original HTML string on error.
-		}
-	}
-
-	function modifyUrl(url) {
-		try {
-			// Modifies the given URL to include the proxy prefix.
-			if (typeof url === 'string') {
-				if (!url.includes(proxyPrefix)) {
-					var urlObj = parseURI(url);
-					if (urlObj) {
-						url = rel2abs(urlObj.href, "http://" + extractDomainFromQueryParams());
-						if (url.indexOf(proxyPrefix) === -1) {
-							url = proxyPrefix + url;
-							//console.log("ModifyURL: Modified " + url);
-						}
-					}
-				}
-			} else if (url instanceof Blob) {
-				// Convert Blob to data URL
-				const reader = new FileReader();
-				reader.readAsDataURL(url);
-				reader.onload = function() {
-					const dataUrl = reader.result;
-					// Apply modifications if necessary
-					const modifiedUrl = modifyUrl(dataUrl);
-					return modifiedUrl;
-				};
-			} else {
-				console.error(`Error in modifyUrl: URL is not a string. Received type: \${typeof url}`);
-				if (typeof url === 'object') {
-					console.log(`Object JSON: \${JSON.stringify(url)}`);
-				}
-				//console.trace(); // Log stack trace
-			}
-			return url;
-		} catch (error) {
-			console.error("Error in modifyUrl:", error);
-			console.trace();
-			return url; // Return the original URL on error.
-		}
-	}
-	
-
-	function extractDomain(url) {
-		var domain;
-		// Find & remove protocol (http, ftp, etc.) and get domain
-		if (url.indexOf("://") > -1) {
-			domain = url.split('/')[2];
-		} else {
-			domain = url.split('/')[0];
-		}
-
-		// Find & remove port number
-		domain = domain.split(':')[0];
-
-		return domain;
-	}
-
-    // Function to dynamically extract a domain from a URL provided in the query parameters
-    function extractDomainFromQueryParams() {
-        // Parse the current URL to access query parameters
-        var currentUrl = new URL(window.location.href);
-        var queryParams = currentUrl.searchParams;
-
-        // Initialize a variable to hold the domain extracted from a URL parameter
-        var extractedDomain = '';
-
-        // Specify the query parameter that contains the URL from which the domain should be extracted
-        var urlParam = queryParams.get('ProxyForm') || queryParams.toString();
-
-        // Check if the URL parameter is present and contains a value
-        if (urlParam) {
-            try {
-                // Attempt to construct a URL object from the parameter value to extract the hostname
-                var url = new URL(decodeURIComponent(urlParam));
-                extractedDomain = url.hostname;
-            } catch (e) {
-                console.error("Error extracting domain from URL parameter:", e);
-                return ''; // Return empty string in case of error
-            }
-        }
-
-        // Simplify the extracted domain to ensure it's a valid cookie name part
-        // Removing periods and replacing them with underscores
-        return extractedDomain;
-    }
-
-    var originalCookieDescriptor = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie');
-
-    Object.defineProperty(document, 'cookie', {
-        get: function() {
-            return originalCookieDescriptor.get.call(this); // Use the original getter
-        },
-        set: function(value) {
-            // Extract the domain from the query parameters
-            var domainPrefix = extractDomainFromQueryParams().replace(/\./g, '');;
-
-            // Proceed only if a domain was successfully extracted
-            if (domainPrefix) {
-                // Prefix the cookie name with the extracted domain
-                var firstEqualIndex = value.indexOf('=');
-                var cookieName = value.substring(0, firstEqualIndex);
-                var modifiedCookieName = domainPrefix + '_' + cookieName;
-                var newValue = modifiedCookieName + value.substring(firstEqualIndex);
-				
 				var newValue = newValue.replace(/domain=[^;]+/, 'domain=.' + extractDomain(proxyPrefix));
-				
+
 				console.log("Modified Cookie: ", newValue);
-				
-                // Call the original setter with the modified cookie value
-                originalCookieDescriptor.set.call(this, newValue);
-            } else {
-                // If no domain was extracted, set the cookie normally
-                originalCookieDescriptor.set.call(this, value);
-            }
-        },
-        configurable: true // Ensure it can be redefined later if necessary
-    });
+
+				// Call the original setter with the modified cookie value
+				originalCookieDescriptor.set.call(this, newValue);
+			} else {
+				// If no domain was extracted, set the cookie normally
+				originalCookieDescriptor.set.call(this, value);
+			}
+		},
+		configurable: true // Ensure it can be redefined later if necessary
+	});
+
+	const originalActiveXObject = window.ActiveXObject;
+	try {
+		if (originalActiveXObject) {
+			window.ActiveXObject = function(type) {
+				if (type === "Msxml2.XMLHTTP" || type === "Msxml3.XMLHTTP" || type === "Microsoft.XMLHTTP") {
+					console.log(`Intercepted ActiveXObject creation of type: ${type}`);
+
+					// Create the original ActiveXObject instance
+					var originalObject = new originalActiveXObject(type);
+
+					// Wrap the 'open' method
+					var originalOpen = originalObject.open;
+					originalObject.open = function(method, url, async, user, password) {
+						// Modify the URL
+						var modifiedUrl = modifyUrl(url);
+						console.log(`Original URL: ${url}, Modified URL: ${modifiedUrl}`);
+
+						// Call the original 'open' method with the modified URL
+						return originalOpen.call(this, method, modifiedUrl, async, user, password);
+					};
+
+					// Return the modified ActiveXObject instance
+					return originalObject;
+				}
+				// For other types of ActiveXObject, return an unmodified instance
+				return new originalActiveXObject(type);
+			};
+		}
+	} catch (error) {
+		console.error("Error intercepting ActiveXObject:", error);
+	}
+
 	
-const originalActiveXObject = window.ActiveXObject;
-  if (originalActiveXObject) {
-    window.ActiveXObject = function(type) {
-      if (type === "Msxml2.XMLHTTP" || type === "Msxml3.XMLHTTP" || type === "Microsoft.XMLHTTP") {
-        // Implement the interception logic here
-        // Note: Modifying ActiveX objects for network requests is complex and may not be fully feasible
-        // due to the limitations in controlling proprietary Internet Explorer features.
-        console.log(`Intercepted ActiveXObject creation of type: \${type}`);
-        // This is a simplistic approach and may not work for actual request interception/modification
-        return new originalActiveXObject(type);
-      }
-      return new originalActiveXObject(type);
-    };
-  }
-  
-  const originalSendBeacon = navigator.sendBeacon.bind(navigator);
-  navigator.sendBeacon = function(url, data) {
-    const modifiedUrl = modifyUrl(url);
-    return originalSendBeacon(modifiedUrl, data);
-  };
-  
-  // Override dynamic script imports
-  const originalImport = window.importScripts;
-  if (originalImport) {
-    window.importScripts = function(...urls) {
-      const modifiedUrls = urls.map(url => modifyUrl(url));
-      return originalImport.apply(this, modifiedUrls);
-    };
-  }
-  
-  
-  if (window.XDomainRequest) {
-    // Save a reference to the original XDomainRequest
-    var originalXDomainRequest = window.XDomainRequest;
-
-    // Define a new implementation of XDomainRequest
-    window.XDomainRequest = function() {
-      var xdr = new originalXDomainRequest();
-
-      // Override the open method
-      var originalOpen = xdr.open;
-      xdr.open = function(method, url) {
-        // Here you can modify the URL or log the request
-        console.log('XDomainRequest opened for URL:', url);
-        // Call the original open method with potentially modified arguments
-        return originalOpen.apply(this, [method, modifyUrl(url)]);
-      };
-
-      // Implement similar overrides for other methods like send() if needed
-
-      return xdr;
-    };
+	try {
+		// Intercepting navigator.sendBeacon
+		navigator.sendBeacon = ((original) => (url, data) => original(modifyUrl(url), data))(navigator.sendBeacon.bind(navigator));
 	
-	/*
+	} catch (error) {
+		console.error("Error in navigator.sendBeacon interception setup:", error);
+	}
+
+	// Override dynamic script imports
+	const originalImport = window.importScripts;
+	try {
+		if (originalImport) {
+			window.importScripts = function(...urls) {
+				try {
+					const modifiedUrls = urls.map(url => modifyUrl(url));
+					return originalImport.apply(this, modifiedUrls);
+				} catch (error) {
+					console.error("Error modifying URLs for importScripts:", error);
+				}
+			};
+		}
+	} catch (error) {
+		console.error("Error intercepting importScripts:", error);
+	}
+
+	if (window.XDomainRequest) {
+		try {
+			// Save a reference to the original XDomainRequest
+			var originalXDomainRequest = window.XDomainRequest;
+
+			// Define a new implementation of XDomainRequest
+			window.XDomainRequest = function() {
+				var xdr = new originalXDomainRequest();
+
+				// Override the open method
+				var originalOpen = xdr.open;
+				xdr.open = function(method, url) {
+					try {
+						// Here you can modify the URL or log the request
+						console.log('XDomainRequest opened for URL:', url);
+						// Call the original open method with potentially modified arguments
+						return originalOpen.apply(this, [method, modifyUrl(url)]);
+					} catch (error) {
+						console.error("Error intercepting XDomainRequest open:", error);
+					}
+				};
+
+				// Implement similar overrides for other methods like send() if needed
+
+				return xdr;
+			};
+		} catch (error) {
+			console.error("Error intercepting XDomainRequest:", error);
+		}
+	}
+
+
+		/*
   // Use Object.defineProperty to override sendBeacon and make it non-writable
   Object.defineProperty(navigator, 'sendBeacon', {
-    value: modifiedSendBeacon,
-    writable: false, // This prevents further modifications
-    configurable: false, // This prevents the property from being deleted or reconfigured
+	value: modifiedSendBeacon,
+	writable: false, // This prevents further modifications
+	configurable: false, // This prevents the property from being deleted or reconfigured
   });
 	
 	*/
+	
+	
+	//Things to disable
+	
+	// Unregister existing ServiceWorkers
+	navigator.serviceWorker.getRegistrations().then(function(registrations) {
+		registrations.forEach(function(registration) {
+			registration.unregister().then(function(success) {
+				console.log('ServiceWorker unregistered:', success);
+			}).catch(function(error) {
+				console.error('Failed to unregister ServiceWorker:', error);
+			});
+		});
+	}).catch(function(error) {
+		console.error('Failed to get ServiceWorker registrations:', error);
+	});
+	
+	// Override ServiceWorker registration to prevent new registrations
+	navigator.serviceWorker.register = function() {
+		console.log('ServiceWorker registration is disabled.');
+		return Promise.resolve(undefined); // Resolving with null to indicate successful registration (even though it's disabled)
+	};
 
+
+	// Terminate any existing Worker instances
+	if (typeof Worker !== 'undefined') {
+		let workers = [];
+		// Collect all existing Worker instances
+		for (let key in window) {
+			if (window[key] instanceof Worker) {
+				workers.push(window[key]);
+			}
+		}
+		// Terminate each Worker instance
+		workers.forEach(function(worker) {
+			worker.terminate();
+		});
+	}
+
+	// Override Worker constructor to prevent new instances
+	window.Worker = function() {
+		console.log('Web Worker creation is disabled.');
+	};
+
+	// Terminate any existing SharedWorker instances
+	if (typeof SharedWorker !== 'undefined') {
+		let sharedWorkers = [];
+		// Collect all existing SharedWorker instances
+		for (let key in window) {
+			if (window[key] instanceof SharedWorker) {
+				sharedWorkers.push(window[key]);
+			}
+		}
+		// Terminate each SharedWorker instance
+		sharedWorkers.forEach(function(sharedWorker) {
+			sharedWorker.port.close();
+		});
+	}
+
+	// Override SharedWorker constructor to prevent new instances
+	window.SharedWorker = function() {
+		console.log('SharedWorker creation is disabled.');
+	};
+	
+	// Terminate any existing EventSource instances
+	if (typeof EventSource !== 'undefined') {
+		let eventSources = [];
+		// Collect all existing EventSource instances
+		for (let key in window) {
+			if (window[key] instanceof EventSource) {
+				eventSources.push(window[key]);
+			}
+		}
+		// Close each EventSource instance
+		eventSources.forEach(function(eventSource) {
+			eventSource.close();
+		});
+	}
+	
+	// Override EventSource constructor to prevent new instances
+	window.EventSource = function() {
+		console.log('Attempt to create EventSource was made.');
+	};
+
+	// Define the disabled property getter function
+	function disabledGetter(propName) {
+		console.log(propName + " is disabled.");
+		return null;
+	}
+
+	// Define a dummy object to replace window.WebAssembly
+	const disabledWebAssembly = {};
+
+	// Override window.WebAssembly with the dummy object
+	window.WebAssembly = disabledWebAssembly;
+
+	// Override any attempted usage of WebAssembly methods
+	Object.getOwnPropertyNames(window.WebAssembly).forEach(prop => {
+		if (typeof window.WebAssembly[prop] === 'function') {
+			window.WebAssembly[prop] = disabledGetter;
+		}
+	});
+
+	// Properties to disable
+	const propertiesToDisable = [
+		'geolocation', 'getCurrentPosition', 'watchPosition', 'geolocationServicesEnabled', 'geolocationPermissionGranted',
+		'webkitGeolocation', 'hardwareConcurrency', 'platform', 'oscpu', 'plugins', 'product', 'vendor', 'appVersion',
+		'productSub', 'vendorSub', 'deviceMemory', 'userAgent', 'appName', 'maxTouchPoints', 'mediaDevices', 'getBattery',
+		'battery', 'getUserMedia', 'webkitStorageInfo', 'webkitVisibilityState', 'webkitHidden', 'webkitGetUserMedia',
+		'webkitDirectory', 'webkitIntent', 'mozApps', 'document.referrer', 'performance', 'history',
+	];
+
+	// Override properties
+	var targetObjects = [Navigator.prototype, Window.prototype, Window];
+	targetObjects.forEach(target => {
+		propertiesToDisable.forEach(prop => {
+			// Check if the property is already defined before overwriting it
+			if (prop in target) {
+				Object.defineProperty(target, prop, {
+					get: function() { return disabledGetter(prop); },
+					configurable: false
+				});
+			}
+		});
+	});
+	
+	var targetObjects = [navigator, Worker, Worker.prototype,  MediaDevices.prototype, MediaRecorder.prototype, ];
+	var excludeProperties = ['plugins', 'storage', 'serviceWorker', 'webdriver', 'clipboard', 'language', 'languages', 'credentials'];
+	
+	// Iterate over all properties and methods of the navigator object
+	targetObjects.forEach(target => {
+		for (const prop in target) {
+			if (!excludeProperties.includes(prop)) {
+				// Override the property with the disabled function
+				Object.defineProperty(target, prop, {
+					get: function() { return disabledGetter(prop); },
+					configurable: false,
+				});
+			}
+		}
+	});
 })();
+
+function countFailedNetworkRequests() {
+	failedNetworkRequests = performance.getEntriesByType('resource')
+		.filter(entry => entry.duration === 0).length;
+	// Log failed network requests count to console
+	console.log(`Failed network requests: \${failedNetworkRequests}`);
+}
+
+
 EOF;
 	}
 	
