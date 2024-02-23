@@ -1225,7 +1225,7 @@ if (stripos($contentType, "text/html") !== false) {
 
 	// Extract the base URL from the current location to use in URL modifications.
 	var currentURL = window.location.href;
-	var params = currentURL.split("{$_SERVER["SCRIPT_NAME "]}?")[1];
+	var params = currentURL.split("{$_SERVER["SCRIPT_NAME"]}?")[1];
 	var baseURL = decodeURIComponent(params || "");
 	
 	// List of attributes that potentially contain URLs to be modified.
