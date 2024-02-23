@@ -957,7 +957,7 @@ class Proxy {
 		$noMatchRegex = "/^(about|javascript|magnet|mailto|tel|data|chrome-extension|sms|itms|itms-apps|android-app|ios-app):|#/i";
 		$noMatchAttributes = ['src', 'href', 'action'];
 		
-		$processAttribute = function ($element, $attrName) use ($noMatchRegex, $url) {
+		$processAttribute = function ($element, $attrName) use ($noMatchRegex, $url, $noMatchAttributes) {
 			//For every element with the given attribute...
 			$attrContent = $element->getAttribute($attrName);
 			
