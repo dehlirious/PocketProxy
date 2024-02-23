@@ -68,12 +68,17 @@ $config = [
 	'forceCORS' => true, // To enable CORS (cross-origin resource sharing) for proxied sites
 	'disallowLocal' => true, // Set to false to allow sites on the local network to be proxied
 	
+	//This is setup to prevent loading of certain domains/files. 
+	//At the moment, this is catered towards Ad and Ad providers but may expand in the future
+	'forbiddenDomains'=>["ups.analytics.yahoo.com"],
+	'forbiddenURIs'=>['/_td_api/beacon/*', '/tag/js/gpt.js'],
 
 ];
 
 class Proxy {
 	public $a, $maxdl, $forceCORS, $blacklistlog, $cce, $blacklistPatterns, $CaptchaSites, $Lpassword, $LsessionL,
-		$httpvariable, $whitelistPatterns, $disallowLocal, $startURL, $landingExampleURL, $requiredExtensions;
+		$httpvariable, $whitelistPatterns, $disallowLocal, $startURL, $landingExampleURL, $requiredExtensions,
+		$forbiddenDomains, $forbiddenURIs;
 	
 	public function __construct($config) {
 	
@@ -106,6 +111,8 @@ class Proxy {
 		$this->maxdl = isset($config['maxdl']) ? $config['maxdl'] : null;
 		$this->landingExampleURL = isset($config['landingExampleURL']) ? $config['landingExampleURL'] : null;
 		$this->blacklistlog = isset($config['blacklistlog']) ? $config['blacklistlog'] : null;
+		$this->forbiddenDomains = isset($config['forbiddenDomains']) ? $config['forbiddenDomains'] : null;
+		$this->forbiddenURIs = isset($config['forbiddenURIs']) ? $config['forbiddenURIs'] : null;
 
 		$this->requiredExtensions = ["curl", "mbstring", "xml"];
 
@@ -127,7 +134,7 @@ class Proxy {
 	}
 	
 	/**
-	 * Extracts the domain from a given URL by removing the protocol and path.
+	 * Extracts the root domain from a given URL by removing the protocol and path.
 	 *
 	 * This function removes the 'http://' or 'https://' and any subsequent path or query string
 	 * from the provided URL to extract the domain.
@@ -268,15 +275,13 @@ class Proxy {
 	public function rel2abs($rel, $base) {
 		if (empty($rel)) {
 			$rel = "";
-		}
-		if (parse_url($rel, PHP_URL_SCHEME) != "" || strpos($rel, "//") === 0) {
+		} elseif (parse_url($rel, PHP_URL_SCHEME) != "" || strpos($rel, "//") === 0) {
 			return $rel; // Return if already an absolute URL
 		}
 		
 		if (!empty($rel) && ($rel[0] == "#" || $rel[0] == "?")) {
 			return $base . $rel; // Queries and anchors
 		}
-
 
 		// Validate the base URL
 		$parsedBase = parse_url($base);
@@ -528,6 +533,61 @@ class Proxy {
 		<body><div class="container mt-5"><div class="row justify-content-center"><div class="col-md-6 text-center"><p class="error">' . $error . '</p><form action="' . addslashes($_SERVER['REQUEST_URI']) . '" method="post" name="pwd"><label for="passwd" class="visually-hidden">Password:</label><input class="form-control mb-3" name="passwd" type="password" id="passwd" required>
 		<button class="btn btn-primary" type="submit" name="privsubmit_pwd">Login</button></form></div></div></div></body></html>'; 
 	}
+	
+	public function isForbiddenUri($uri) {
+		// Check if the URI matches any of the forbidden URIs (with wildcard support)
+		foreach ($this->forbiddenURIs as $forbiddenUri) {
+			if ($this->uriMatches($forbiddenUri, $uri)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public function uriMatches($pattern, $uri) {
+		// Convert the URI pattern and URI to regular expressions
+		$pattern = str_replace('/', '\/', $pattern); // Escape slashes
+		$pattern = str_replace('*', '.*', $pattern); // Convert * to .*
+		$pattern = '/^' . $pattern . '$/'; // Add start and end delimiters
+
+		// Perform regular expression matching
+		return (bool)preg_match($pattern, $uri);
+	}
+
+	/**
+	 * Extracts the domain from a given URL by removing the protocol and path.
+	 *
+	 * This function removes the 'http://' or 'https://' and any subsequent path or query string
+	 * from the provided URL to extract the domain.
+	 */
+	public function getCompleteDomain($url) {
+		if (preg_match('/^(?:https?:\/\/)?([\w.-]+)/i', $url, $match)) {
+			return $match[1]."\r\n";
+		}
+	}
+
+	public function doesItPass($url){
+		// Extract domain and URI from the URL
+		$domain = $this->getCompleteDomain($url);
+		$parsedUrl = parse_url($url);
+		$uri = isset($parsedUrl['path']) ? $parsedUrl['path'] : '/'; // Default to root if path is not present
+
+		// Check if the domain is forbidden * not yet working
+		if (in_array($domain, $this->forbiddenDomains)) {
+			// Handle forbidden domain (e.g., return an error message)
+			return "Access to this domain is forbidden.";
+			
+		}
+
+		// Check if the URI is forbidden
+		if ($this->isForbiddenUri($uri)) {
+			// Handle forbidden URI (e.g., return an error message)
+			return "Access to this URI is forbidden.";
+		}
+		
+		return true;
+	}
+
 
 	//Makes an HTTP request via cURL, using request data that was passed directly to this script.
 	public function makeRequest($url) {
@@ -1138,7 +1198,16 @@ if (!$proxy->isValidURL($url)) {
 }
 //Error where google links are ?https:/ and not ://
 
-$response = $proxy->makeRequest($url);
+$preCheck = $proxy->doesItPass($url);
+
+if ($preCheck === true) {
+    $response = $proxy->makeRequest($url);
+} elseif (is_string($preCheck)) {
+    die($preCheck);
+} else {
+    die("Error!!");
+}
+
 $rawResponseHeaders = $response["headers"];
 $responseBody = $response["body"];
 $responseInfo = $response["responseInfo"];
@@ -1151,12 +1220,12 @@ if ($responseInfo["url"] !== $url) {
 }
 
 //A regex that indicates which server response headers should be stripped out of the proxified response.
-$header_blacklist_pattern = "/^Content-Length|^Transfer-Encoding|^Content-Encoding.*gzip/i";
+$header_blacklist_pattern = "/^X-Firefox-Spdy|^Content-Length|^Transfer-Encoding|^Content-Encoding.*gzip/i";
 
 //cURL can make multiple requests internally (for example, if CURLOPT_FOLLOWLOCATION is enabled), and reports
 //headers for every request it makes. Only proxy the last set of received response headers,
 //corresponding to the final request made by cURL for any given call to makeRequest().
-$values = array_diff(explode("\r\n\r\n", $rawResponseHeaders) , ["permissions-policy", "strict-transport-security", "report-to", "x-content-type-options", "X-Content-Type-Options", "cross-origin-opener-policy-report-only", "content-security-policy", "x-frame-options", "x-robots-tag", "x-xss-protection", "X-Frame-Options"]);
+$values = array_diff(explode("\r\n\r\n", $rawResponseHeaders) , ["X-Firefox-Spdy", "permissions-policy", "strict-transport-security", "report-to", "x-content-type-options", "X-Content-Type-Options", "cross-origin-opener-policy-report-only", "content-security-policy", "x-frame-options", "x-robots-tag", "x-xss-protection", "X-Frame-Options"]);
 $responseHeaderBlocks = $values;
 //$responseHeaderBlocks = array_filter(explode("\r\n\r\n", $rawResponseHeaders));
 $lastHeaderBlock = end($responseHeaderBlocks);
@@ -1167,6 +1236,9 @@ foreach ($headerLines as $header) {
 		header($header, false);
 	}
 }
+
+
+
 //Prevent robots from indexing proxified pages
 header("X-Robots-Tag: noindex, nofollow", true);
 
@@ -1219,7 +1291,13 @@ if (stripos($contentType, "text/html") !== false) {
 	$proxyPrefix = PROXY_PREFIX;
 	//This is wrapped like this so when I'm using Notepad++ , i can fricken collapse this segment
 	if(true){
-	$jsContent = <<<EOF
+		/*
+		Alternatively, do this, just remember to turn all \$ into $ in the js
+		$jsContent = file_get_contents("proxy.js");
+		$jsContent = str_replace('{$PROXY_PREFIX}', PROXY_PREFIX, $jsContent);
+		$jsContent = str_replace('{$_SERVER_SCRIPT_NAME}', $_SERVER["SCRIPT_NAME"], $jsContent);
+		*/
+		$jsContent = <<<EOF
 (function() {
 	// Initialize a proxy prefix variable to modify URLs for routing through a proxy.
 	var proxyPrefix = "{$proxyPrefix}";
@@ -1575,48 +1653,6 @@ if (stripos($contentType, "text/html") !== false) {
 		};
 	} catch (error) {
 		console.error("Error in WebSocket/ServiceWorker/Form/WindowOpen/Worker modification:", error);
-	}
-
-	// History manipulation to ensure navigation is consistent with proxy routing.
-	try {
-		(function(history) {
-			var pushState = history.pushState;
-			var replaceState = history.replaceState;
-
-			history.pushState = function(state, title, url) {
-				var modifiedUrl = modifyUrl(url);
-				if (typeof history.onpushstate == "function") {
-					history.onpushstate({
-						state: state,
-						title: title,
-						url: modifiedUrl
-					});
-				}
-				return pushState.apply(history, [state, title, modifiedUrl]);
-			};
-
-			history.replaceState = function(state, title, url) {
-				var modifiedUrl = modifyUrl(url);
-				if (typeof history.onreplacestate == "function") {
-					history.onreplacestate({
-						state: state,
-						title: title,
-						url: modifiedUrl
-					});
-				}
-				return replaceState.apply(history, [state, title, modifiedUrl]);
-			};
-
-			window.addEventListener("popstate", function(event) {
-				// Handle back/forward button navigation.
-				var modifiedUrl = modifyUrl(event.state ? event.state.url : window.location.href);
-				if (window.location.href !== modifiedUrl) {
-					window.location.replace(modifiedUrl);
-				}
-			});
-		})(window.history);
-	} catch (error) {
-		console.error("Error in history manipulation:", error);
 	}
 
 	// Modifying document.write and writeln to search for and modify URLs in content.
