@@ -696,7 +696,7 @@ class Proxy {
 
 			// Prefix all cookie names with the domain name
 			foreach ($cookie as $name => $value) {
-				$new_name = $prefix = str_replace('.', '', $this->getDomain($url)) . '_' . $name;
+				$new_name = $prefix = str_replace('.', '', $this->getCompleteDomain($url)) . '_' . $name;
 				$cookie[$new_name] = $value;
 				unset($cookie[$name]); // Remove the old cookie name
 			}
