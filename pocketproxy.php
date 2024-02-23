@@ -523,7 +523,7 @@ class Proxy {
 	public function showForm($error="Login"){
 		echo '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Login</title><meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"><style>body { background: #f8f9fa; }.error { font: 24px/1.5 sans-serif; color: #dc3545; }</style></head>
-		<body><div class="container mt-5"><div class="row justify-content-center"><div class="col-md-6 text-center"><p class="error">' . $error . '</p><form action="' . $_SERVER['REQUEST_URI'] . '" method="post" name="pwd"><label for="passwd" class="visually-hidden">Password:</label><input class="form-control mb-3" name="passwd" type="password" id="passwd" required>
+		<body><div class="container mt-5"><div class="row justify-content-center"><div class="col-md-6 text-center"><p class="error">' . $error . '</p><form action="' . addslashes($_SERVER['REQUEST_URI']) . '" method="post" name="pwd"><label for="passwd" class="visually-hidden">Password:</label><input class="form-control mb-3" name="passwd" type="password" id="passwd" required>
 		<button class="btn btn-primary" type="submit" name="privsubmit_pwd">Login</button></form></div></div></div></body></html>'; 
 	}
 
@@ -593,8 +593,8 @@ class Proxy {
 					//across different server environments.
 					//More info here: http://stackoverflow.com/questions/8899239/http-raw-post-data-not-being-populated-after-upgrade-to-php-5-3
 					//If the ProxyForm field appears in the POST data, remove it so the destination server doesn't receive it.
-					if (isset($postData["BoopProxyForm"])) {
-						unset($postData["BoopProxyForm"]);
+					if (isset($postData["ProxyForm"])) {
+						unset($postData["ProxyForm"]);
 					}
 					curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postData));
 				}
@@ -872,7 +872,7 @@ class Proxy {
 			$form->setAttribute("action", rtrim(PROXY_PREFIX, "?"));
 			//Add a hidden form field that the proxy can later use to retreive the original form action.
 			$actionInput = $doc->createDocumentFragment();
-			$actionInput->appendXML('<input type="hidden" name="BoopProxyForm" value="' . htmlspecialchars($action) . '" />');
+			$actionInput->appendXML('<input type="hidden" name="ProxyForm" value="' . htmlspecialchars($action) . '" />');
 			$form->appendChild($actionInput);
 		}
 		
@@ -1023,18 +1023,18 @@ $html = "
 ";
 
 //Extract and sanitize the requested URL, handling cases where forms have been rewritten to point to the proxy.
-if (isset($_POST["BoopProxyForm"])) {
-	$url = $_POST["BoopProxyForm"];
+if (isset($_POST["ProxyForm"])) {
+	$url = $_POST["ProxyForm"];
 	//var_dump($url);
-	unset($_POST["BoopProxyForm"]);
+	unset($_POST["ProxyForm"]);
 }
 else {
 	$queryParams = [];
 	parse_str($_SERVER["QUERY_STRING"], $queryParams);
 	//If the ProxyForm field appears in the query string, make $url start with its value, and rebuild the the query string without it.
-	if (isset($queryParams["BoopProxyForm"])) {
-		$formAction = $queryParams["BoopProxyForm"];
-		unset($queryParams["BoopProxyForm"]);
+	if (isset($queryParams["ProxyForm"])) {
+		$formAction = $queryParams["ProxyForm"];
+		unset($queryParams["ProxyForm"]);
 		
 		$url = $formAction . "?" . http_build_query($queryParams);
 		//echo $url;
@@ -1076,16 +1076,14 @@ $proxy->HandleCaptcha($url);
 $scheme = parse_url($url, PHP_URL_SCHEME);
 #var_dump($scheme);
 if (empty($scheme)) {
-	//echo $url;
-	if (strpos($url, "//") === 0) {
-		//Assume that any supplied URLs starting with // are HTTP URLs.
-		$url = "http:" . $url;
-	}
-	else {
-		//Assume that any supplied URLs without a scheme (just a host) are HTTP URLs.
-		// this appears to maybe be causing issues..
-		$url = "http://" . $url;
-	}
+    // If the URL doesn't contain a scheme
+    if (strpos($url, "//") === 0) {
+        // Assume that any supplied URLs starting with // are HTTP URLs.
+        $url = "http:" . $url;
+    } elseif (preg_match('~^https?://~i', $url) !== 1) {
+        // If the URL doesn't start with http:// or https://, assume it's HTTP.
+        $url = "http://" . $url;
+    }
 }
 elseif (!preg_match("/^https?$/i", $scheme)) {
 	die('Error: Detected a "' . $scheme . '" URL. PocketProxy exclusively supports http[s] URLs.');
@@ -1481,20 +1479,38 @@ if (stripos($contentType, "text/html") !== false) {
 	// Store the original document.cookie descriptor
 	var originalCookieDescriptor = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie');
 
-	// Redefine document.cookie with the custom setter
-	Object.defineProperty(document, 'cookie', {
-	  get: function() {
-		return originalCookieDescriptor.get.call(this); // Use the original getter
-	  },
-	  set: function(value) {
-	  // Modify the domain within the cookie string
-	  var newValue = value.replace(/domain=[^;]+/, 'domain=.' + extractDomain(proxyPrefix));
-	  //console.log('v', value, newValue);
-	  // Call the original setter with the modified cookie value
-	  originalCookieDescriptor.set.call(this, newValue);
-	},
-	  configurable: true // Ensure it can be redefined later if necessary
-	});
+// Simplify the domain extraction for cookie name prefixing
+function simplifyDomain(domain) {
+  // Remove leading periods and replace remaining periods with underscores to ensure a valid cookie name
+  return domain.replace(/^\./, '').replace(/\./g, '_');
+}
+
+
+Object.defineProperty(document, 'cookie', {
+  get: function() {
+    return originalCookieDescriptor.get.call(this); // Use the original getter
+  },
+  set: function(value) {
+    // Split cookie string to find the domain attribute
+    var parts = value.split(';');
+    var domainPart = parts.find(part => part.trim().startsWith('domain='));
+    var domain = domainPart ? domainPart.split('=')[1] : document.domain;
+    
+    // Simplify and prepare domain for prefixing
+    var simplifiedDomain = simplifyDomain(domain);
+    
+    // Prefix the cookie name with the simplified domain
+    var firstEqualIndex = value.indexOf('=');
+    var cookieName = value.substring(0, firstEqualIndex);
+    var modifiedCookieName = simplifiedDomain + '_' + cookieName;
+    var newValue = modifiedCookieName + value.substring(firstEqualIndex);
+    
+    // Call the original setter with the modified cookie value
+    originalCookieDescriptor.set.call(this, newValue);
+  },
+  configurable: true // Ensure it can be redefined later if necessary
+});
+
 
 
 	/**
