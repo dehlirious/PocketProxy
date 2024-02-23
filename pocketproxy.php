@@ -2196,7 +2196,7 @@ if (stripos($contentType, "text/html") !== false) {
 
 	// Properties to disable
 	const propertiesToDisable = [
-		'Geolocation', 'getCurrentPosition', 'watchPosition', 'geolocationServicesEnabled', 'geolocationPermissionGranted',
+		'geolocation', 'getCurrentPosition', 'watchPosition', 'geolocationServicesEnabled', 'geolocationPermissionGranted',
 		'webkitGeolocation', 'hardwareConcurrency', 'platform', 'oscpu', 'plugins', 'product', 'vendor', 'appVersion',
 		'productSub', 'vendorSub', 'deviceMemory', 'userAgent', 'appName', 'maxTouchPoints', 'mediaDevices', 'getBattery',
 		'battery', 'getUserMedia', 'webkitStorageInfo', 'webkitVisibilityState', 'webkitHidden', 'webkitGetUserMedia',
@@ -2217,7 +2217,7 @@ if (stripos($contentType, "text/html") !== false) {
 		});
 	});
 	
-	var targetObjects = [navigator, Worker, Worker.prototype,  MediaDevices.prototype, MediaRecorder.prototype, ];
+	var targetObjects = [history, History.prototype, navigator, Worker, Worker.prototype,  MediaDevices.prototype, MediaRecorder.prototype, ];
 	var excludeProperties = ['plugins', 'storage', 'serviceWorker', 'webdriver', 'clipboard', 'language', 'languages', 'credentials'];
 	
 	// Iterate over all properties and methods of the navigator object
