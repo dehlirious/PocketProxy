@@ -64,7 +64,8 @@ PocketProxy has several known limitations. Some of them may be fixed in future r
 * YouTube does not work (try [youtubeunblocked.live](youtubeunblocked.live))
 * Many MANY websites can display broken qualities when they are javascript dependant.
 * WebSocket connections are not supported yet
-* Probably more! Let me know!
+* Service Workers (all types) are disabled / not supported
+* Maybe more! Let me know!
 
 ## Network Interceptions and Disabled Features
 
