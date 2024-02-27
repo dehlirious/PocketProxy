@@ -78,7 +78,7 @@ $config = [
 class Proxy {
 	public $a, $maxdl, $forceCORS, $blacklistlog, $cce, $blacklistPatterns, $CaptchaSites, $Lpassword, $LsessionL,
 		$httpvariable, $whitelistPatterns, $disallowLocal, $startURL, $landingExampleURL, $requiredExtensions,
-		$forbiddenDomains, $forbiddenURIs;
+		$forbiddenDomains, $forbiddenURIs, $CaptchaAgents;
 	
 	public function __construct($config) {
 	
