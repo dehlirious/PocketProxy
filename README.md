@@ -30,7 +30,13 @@
     <a href="https://buymeacoffee.com/devsir">
         <img src="https://badgen.net/badge/icon/buymeacoffee?icon=buymeacoffee&label" alt="Buymeacoffee" />
     </a>
+    <br/>
+    <a href="https://star-history.com/#dehlirious/PocketProxy&Date">
+        <img src="https://api.star-history.com/svg?repos=dehlirious/PocketProxy&type=Date" alt="Star History Chart" />
+    </a>
+
 </p>
+
 
 PocketProxy is an advanced PHP web proxy designed for easy bypassing of internet content filters, boosting online privacy, and anonymous browsing, catering specifically to users in need of a simple yet powerful online experience.
 
